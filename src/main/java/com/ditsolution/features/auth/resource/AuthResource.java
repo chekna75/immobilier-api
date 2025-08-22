@@ -49,7 +49,6 @@ public class AuthResource {
         }
     
         UserEntity user = new UserEntity();
-        user.id = UUID.randomUUID();
         user.email = email;
         user.passwordHash = passwordService.hash(req.password());
         user.firstName = req.firstName();
