@@ -7,6 +7,7 @@ public class AuthDtos {
     public record LoginOtpRequest(String phone, String code) {}
     public record RefreshRequest(String refreshToken) {}
     public record UpdateMeRequest(String firstName, String lastName, String avatarUrl) {}
+    public record ChangePasswordRequest(String currentPassword, String newPassword) {}
     public record AuthResponse(String accessToken, String refreshToken, UserDto user) {}
 }
 

@@ -2,6 +2,8 @@ package com.ditsolution.features.auth.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.PrePersist;
@@ -17,6 +19,8 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 // RefreshToken.java
 @Entity
 @Table(name="refresh_tokens")
+@Data
+@EqualsAndHashCode(callSuper = false)
 public class RefreshTokenEntity extends PanacheEntityBase {
   @Id @GeneratedValue
   public UUID id;

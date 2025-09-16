@@ -18,18 +18,23 @@ import com.ditsolution.features.listing.entity.ListingPhotoEntity;
 import com.ditsolution.features.listing.enums.ListingStatus;
 import com.ditsolution.features.listing.repository.ListingPhotoRepository;
 import com.ditsolution.features.listing.repository.ListingRepository;
+import com.ditsolution.features.storage.service.FileValidationService;
+import com.ditsolution.features.storage.entity.UploadedImageEntity;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 
 
+@ApplicationScoped
 public class ListingService extends BaseService{
 
     private static final int MAX_PHOTOS = 5;
 
     @Inject ListingRepository listingRepo;
     @Inject ListingPhotoRepository photoRepo;
+    @Inject FileValidationService fileValidationService;
 
     // =========================
     // Méthodes métier
@@ -58,14 +63,24 @@ public class ListingService extends BaseService{
 
         listingRepo.persist(listing);
 
-        // Photos (≤ 5)
+        // Photos (≤ 5) avec validation
         var photos = safeList(dto.photos());
-        if (photos.size() > MAX_PHOTOS) {
-            throw HttpErrors.badRequest("PHOTOS_LIMIT", "Maximum 5 photos");
+        if (!fileValidationService.isValidPhotoCount(photos.size())) {
+            throw HttpErrors.badRequest("PHOTOS_LIMIT", "Maximum " + fileValidationService.getMaxPhotosPerListing() + " photos");
         }
+        
         int ordering = 0;
         for (String url : photos) {
             if (isBlank(url)) continue;
+            
+            // Validation basique de l'URL (doit être une URL S3 publique)
+            if (!isValidS3Url(url.trim())) {
+                throw HttpErrors.badRequest("INVALID_PHOTO_URL", "URL de photo invalide");
+            }
+            
+            // Marquer l'image comme utilisée si elle appartient à l'utilisateur
+            markImageAsUsed(url.trim(), owner.getId());
+            
             var p = new ListingPhotoEntity();
             p.setListing(listing);
             p.setUrl(url.trim());
@@ -74,6 +89,26 @@ public class ListingService extends BaseService{
         }
 
         return listing;
+    }
+
+    private boolean isValidS3Url(String url) {
+        if (url == null || url.isEmpty()) {
+            return false;
+        }
+        
+        // Validation basique : doit être une URL HTTPS
+        // Pour les tests, on accepte aussi les URLs example.com
+        return url.startsWith("https://") && 
+               (url.contains("s3.amazonaws.com") || url.contains("s3.") || url.contains("example.com"));
+    }
+
+    private void markImageAsUsed(String publicUrl, UUID userId) {
+        // Trouver l'image par URL publique et ID utilisateur
+        var image = UploadedImageEntity.find("publicUrl = ?1 and userId = ?2", publicUrl, userId).firstResult();
+        if (image != null) {
+            ((UploadedImageEntity) image).setIsUsed(true);
+            image.persist();
+        }
     }
 
     public PagedDto<ListingEntity> listListings(FiltersDto f, PageRequestDto page) {

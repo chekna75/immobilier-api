@@ -5,20 +5,26 @@ import com.ditsolution.features.listing.entity.ListingEntity;
 import com.ditsolution.features.listing.entity.ListingPhotoEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @ApplicationScoped
 public class ListingMapper {
 
     public ListingDto toDto(ListingEntity e) {
-        List<String> urls = e.getPhotos()
+        List<String> urls = Optional.ofNullable(e.getPhotos())
+                .orElse(List.of())
                 .stream()
-                .sorted((a,b) -> Integer.compare(a.getOrdering(), b.getOrdering()))
+                .sorted(Comparator.comparing(
+                        ListingPhotoEntity::getOrdering,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
                 .map(ListingPhotoEntity::getUrl)
-                .toList();
+                .toList(); // Si tu es en Java 11: .collect(Collectors.toList())
 
-        UUID ownerId = e.getOwner() != null ? e.getOwner().getId() : null;
+        UUID ownerId = Optional.ofNullable(e.getOwner()).map(o -> o.getId()).orElse(null);
 
         return new ListingDto(
                 e.getId(),

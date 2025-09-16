@@ -2,6 +2,8 @@ package com.ditsolution.features.auth.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.PrePersist;
@@ -22,6 +24,8 @@ import org.hibernate.type.SqlTypes;
 
 // OtpCode.java
 @Entity
+@Data
+@EqualsAndHashCode(callSuper = false)
 @Table(name="otp_codes")
 public class OtpCodeEntity extends PanacheEntityBase {
   @Id @GeneratedValue

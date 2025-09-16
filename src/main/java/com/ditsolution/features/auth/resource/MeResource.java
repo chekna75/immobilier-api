@@ -1,8 +1,12 @@
 package com.ditsolution.features.auth.resource;
 
 import com.ditsolution.features.auth.dto.AuthDtos.UpdateMeRequest;
+import com.ditsolution.features.auth.dto.AuthDtos.ChangePasswordRequest;
 import com.ditsolution.features.auth.entity.UserEntity;
 import com.ditsolution.features.auth.mapper.AuthMappers;
+import com.ditsolution.features.auth.service.PasswordService;
+import com.ditsolution.features.auth.entity.RefreshTokenEntity;
+import com.ditsolution.features.auth.service.TokenService;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.RequestScoped;
@@ -23,6 +27,8 @@ public class MeResource {
     // cette ressource gère le profil de l’utilisateur connecté via l’URL /me (protégée par JWT)
 
     @Inject SecurityIdentity identity;
+    @Inject PasswordService passwordService;
+    @Inject TokenService tokenService;
 
     // GET /me : retourne le profil du user courant (à partir du sub du JWT) sous forme de UserDto.
     @GET
@@ -32,6 +38,51 @@ public class MeResource {
           ? Response.ok(AuthMappers.toDto(user)).build()
           : unauthorized();
       }
+
+    // PATCH /me/password : changement de mot de passe sécurisé
+    @PATCH
+    @Path("/password")
+    @Transactional
+    public Response changePassword(ChangePasswordRequest req){
+        var user = currentUser();
+        if (user == null) return unauthorized();
+        if (req == null || req.currentPassword()==null || req.newPassword()==null
+            || req.currentPassword().isBlank() || req.newPassword().isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorDto("VALIDATION_ERROR","Champs requis"))
+                .build();
+        }
+        if (!passwordService.matches(req.currentPassword(), user.passwordHash)){
+            return Response.status(Response.Status.UNAUTHORIZED)
+                .entity(new ErrorDto("INVALID_CREDENTIALS","Mot de passe actuel invalide"))
+                .build();
+        }
+        if (req.newPassword().length() < 8){
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorDto("WEAK_PASSWORD","Le nouveau mot de passe est trop court"))
+                .build();
+        }
+        user.passwordHash = passwordService.hash(req.newPassword());
+        // Révoquer tous les refresh tokens de l'utilisateur (forcer reconnexion)
+        RefreshTokenEntity.stream("user = ?1 and revokedAt is null", user)
+            .map(RefreshTokenEntity.class::cast)
+            .forEach(rt -> tokenService.revokeRefresh(rt));
+        return Response.noContent().build();
+    }
+
+    // DELETE /me : suspend le compte (soft delete)
+    @DELETE
+    @Transactional
+    public Response suspendMe(){
+        var user = currentUser();
+        if (user == null) return unauthorized();
+        user.status = UserEntity.Status.SUSPENDED;
+        // Révoquer tous les refresh tokens de l'utilisateur
+        RefreshTokenEntity.stream("user = ?1 and revokedAt is null", user)
+            .map(RefreshTokenEntity.class::cast)
+            .forEach(rt -> tokenService.revokeRefresh(rt));
+        return Response.noContent().build();
+    }
 
     // PATCH /me : permet de mettre à jour ses infos de base (ici firstName, lastName, avatarUrl) et renvoie le profil à jour.
     @PATCH

@@ -2,14 +2,17 @@ package com.ditsolution.features.auth.resource;
 
 import com.ditsolution.features.auth.entity.UserEntity;
 import com.ditsolution.features.auth.entity.RefreshTokenEntity;
+import com.ditsolution.features.auth.service.AdminAuditService;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.spi.HttpRequest;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -21,6 +24,11 @@ import java.util.UUID;
 public class AdminUserResource {
 
     @Inject SecurityIdentity identity;
+    @Inject
+    AdminAuditService auditService;
+
+    @Context
+    HttpRequest request;
 
     @PATCH
     @Path("/{id}/suspend")
@@ -42,6 +50,20 @@ public class AdminUserResource {
         RefreshTokenEntity.update("revokedAt = ?1 WHERE user = ?2 AND revokedAt IS NULL",
                 OffsetDateTime.now(), u);
 
+        String ip = request.getRemoteAddress();
+        String userAgent = request.getHttpHeaders().getHeaderString("User-Agent");
+
+        // Audit
+        auditService.log(
+                UUID.fromString(identity.getPrincipal().getName()),
+                AdminAuditService.ACTION_USER_SUSPEND,
+                "USER",
+                u.id,
+                null,
+                ip,
+                userAgent
+        );
+
         // TODO: audit log (adminId, targetUserId, action, ip/ua)
         return Response.noContent().build();
     }
@@ -61,6 +83,20 @@ public class AdminUserResource {
 
         // (Optionnel) ne pas réactiver automatiquement les refresh tokens révoqués
         // → l’utilisateur devra se reconnecter
+
+        // Audit
+        String ip = request.getRemoteAddress();
+        String userAgent = request.getHttpHeaders().getHeaderString("User-Agent");
+
+        auditService.log(
+                UUID.fromString(identity.getPrincipal().getName()),
+                AdminAuditService.ACTION_USER_ACTIVATE,
+                "USER",
+                u.id,
+                null,
+                ip,
+                userAgent
+        );
 
         // TODO: audit log
         return Response.noContent().build();

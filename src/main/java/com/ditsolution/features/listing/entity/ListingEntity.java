@@ -11,6 +11,7 @@ import com.ditsolution.features.listing.enums.ListingStatus;
 import com.ditsolution.features.listing.enums.ListingType;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -33,8 +34,11 @@ public class ListingEntity {
     @JoinColumn(name = "owner_id")
     private UserEntity owner;
 
-    @Enumerated(EnumType.STRING) private ListingStatus status = ListingStatus.ACTIVE;
-    @Enumerated(EnumType.STRING) private ListingType type;
+    @Enumerated(EnumType.STRING) 
+    private ListingStatus status = ListingStatus.ACTIVE;
+    
+    @Enumerated(EnumType.STRING) 
+    private ListingType type;
     private String city;
     private String district;
     private BigDecimal price;
