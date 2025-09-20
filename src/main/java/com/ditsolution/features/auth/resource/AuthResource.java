@@ -1,5 +1,6 @@
 package com.ditsolution.features.auth.resource;
 
+import com.ditsolution.common.services.EmailService;
 import com.ditsolution.features.auth.dto.AuthDtos.*;
 import com.ditsolution.features.auth.entity.OtpCodeEntity;
 import com.ditsolution.features.auth.entity.RefreshTokenEntity;
@@ -32,7 +33,8 @@ public class AuthResource {
     @Inject TokenService tokenService;
     @Inject PhoneService phoneService;
     @Inject SecurityIdentity identity;
-
+    @Inject EmailService emailService;
+    
     @POST
     @Path("/register")
     @Transactional
@@ -66,6 +68,8 @@ public class AuthResource {
         String rawRefresh = UUID.randomUUID().toString();
         String refreshHash = passwordService.hash(rawRefresh);
         tokenService.issueRefreshToken(user, ua, firstIp(ipRaw), refreshHash);
+
+        emailService.sendEmail(user.email, user.firstName);
     
         return Response.status(Response.Status.CREATED)
             .entity(new AuthResponse(access, rawRefresh, AuthMappers.toDto(user))).build();

@@ -5,7 +5,7 @@ import com.ditsolution.features.auth.service.AdminAuditService;
 import com.ditsolution.features.listing.entity.ListingEntity;
 import com.ditsolution.features.listing.enums.ListingStatus;
 import com.ditsolution.features.listing.repository.ListingRepository;
-import com.ditsolution.features.auth.entity.UserEntity;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -28,7 +28,7 @@ public class AdminListingResource {
     ListingRepository listingRepository;
 
     @Inject
-    UserEntity currentUser;
+    SecurityIdentity identity;
 
     @Inject
     AdminAuditService auditService;
@@ -59,7 +59,7 @@ public class AdminListingResource {
         listing.setStatus(ListingStatus.REMOVED);
         // Log
         auditService.log(
-                currentUser.getId(),
+                UUID.fromString(identity.getPrincipal().getName()),
                 AdminAuditService.ACTION_LISTING_REMOVE,
                 "LISTING",
                 listing.getId(),

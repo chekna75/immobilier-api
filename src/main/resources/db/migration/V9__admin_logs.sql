@@ -9,3 +9,4 @@ CREATE TABLE IF NOT EXISTS admin_logs (
     user_agent TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
+

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import com.ditsolution.common.services.BaseService;
+import com.ditsolution.common.services.EmailService;
 import com.ditsolution.common.utils.HttpErrors;
 import com.ditsolution.features.auth.entity.UserEntity;
 import com.ditsolution.features.listing.dto.FiltersDto;
@@ -35,6 +36,7 @@ public class ListingService extends BaseService{
     @Inject ListingRepository listingRepo;
     @Inject ListingPhotoRepository photoRepo;
     @Inject FileValidationService fileValidationService;
+    @Inject EmailService emailService;
 
     // =========================
     // Méthodes métier
@@ -87,6 +89,8 @@ public class ListingService extends BaseService{
             p.setOrdering(ordering++);
             photoRepo.persist(p);
         }
+
+        emailService.sendListingPublishedEmail(owner.getEmail(), listing.getTitle());
 
         return listing;
     }
