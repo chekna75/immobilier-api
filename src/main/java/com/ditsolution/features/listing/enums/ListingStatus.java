@@ -1,6 +1,8 @@
 package com.ditsolution.features.listing.enums;
 
 public enum ListingStatus {
-    ACTIVE,
-    REMOVED;
+    DRAFT,      // Brouillon (non publié)
+    PUBLISHED,  // Publié et visible
+    ARCHIVED,   // Archivé (non visible)
+    REMOVED;    // Supprimé par admin
 }

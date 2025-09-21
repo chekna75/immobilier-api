@@ -12,5 +12,20 @@ public record ListingCreateDto(
     BigDecimal price,
     String title,
     String description,
+    
+    // Géolocalisation
+    BigDecimal latitude,
+    BigDecimal longitude,
+    
+    // Champs enrichis
+    Integer rooms,
+    Integer floor,
+    Integer buildingYear,
+    String energyClass,
+    Boolean hasElevator,
+    Boolean hasParking,
+    Boolean hasBalcony,
+    Boolean hasTerrace,
+    
     List<String> photos // URLs ou chemins uploadés
 ) {}

@@ -18,6 +18,21 @@ public record ListingDto(
     BigDecimal price,
     String title,
     String description,
+    
+    // Géolocalisation
+    BigDecimal latitude,
+    BigDecimal longitude,
+    
+    // Champs enrichis
+    Integer rooms,
+    Integer floor,
+    Integer buildingYear,
+    String energyClass,
+    Boolean hasElevator,
+    Boolean hasParking,
+    Boolean hasBalcony,
+    Boolean hasTerrace,
+    
     List<String> photos,
     Instant createdAt,
     Instant updatedAt

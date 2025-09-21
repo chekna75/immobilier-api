@@ -53,13 +53,28 @@ public class ListingService extends BaseService{
 
         var listing = new ListingEntity();
         listing.setOwner(owner);
-        listing.setStatus(ListingStatus.ACTIVE);
+        listing.setStatus(ListingStatus.DRAFT); // Par défaut en brouillon
         listing.setType(dto.type());
         listing.setCity(trim(dto.city()));
         listing.setDistrict(trim(dto.district()));
         listing.setPrice(dto.price());
         listing.setTitle(trim(dto.title()));
         listing.setDescription(dto.description());
+        
+        // Géolocalisation
+        listing.setLatitude(dto.latitude());
+        listing.setLongitude(dto.longitude());
+        
+        // Champs enrichis
+        listing.setRooms(dto.rooms());
+        listing.setFloor(dto.floor());
+        listing.setBuildingYear(dto.buildingYear());
+        listing.setEnergyClass(dto.energyClass());
+        listing.setHasElevator(dto.hasElevator() != null ? dto.hasElevator() : false);
+        listing.setHasParking(dto.hasParking() != null ? dto.hasParking() : false);
+        listing.setHasBalcony(dto.hasBalcony() != null ? dto.hasBalcony() : false);
+        listing.setHasTerrace(dto.hasTerrace() != null ? dto.hasTerrace() : false);
+        
         listing.setCreatedAt(now.toInstant());
         listing.setUpdatedAt(now.toInstant());
 
@@ -119,7 +134,7 @@ public class ListingService extends BaseService{
         // Filtre uniquement les ACTIVE (soft delete caché)
         var where = new StringBuilder("status = :active");
         var params = new HashMap<String, Object>();
-        params.put("active", ListingStatus.ACTIVE);
+        params.put("active", ListingStatus.PUBLISHED);
 
         if (!isBlank(f.city())) {
             where.append(" AND LOWER(city) = :city");
@@ -183,6 +198,20 @@ public class ListingService extends BaseService{
         
         dto.type().ifPresent(l::setType);
         dto.price().ifPresent(l::setPrice);
+        
+        // Géolocalisation
+        dto.latitude().ifPresent(l::setLatitude);
+        dto.longitude().ifPresent(l::setLongitude);
+        
+        // Champs enrichis
+        dto.rooms().ifPresent(l::setRooms);
+        dto.floor().ifPresent(l::setFloor);
+        dto.buildingYear().ifPresent(l::setBuildingYear);
+        dto.energyClass().ifPresent(l::setEnergyClass);
+        dto.hasElevator().ifPresent(l::setHasElevator);
+        dto.hasParking().ifPresent(l::setHasParking);
+        dto.hasBalcony().ifPresent(l::setHasBalcony);
+        dto.hasTerrace().ifPresent(l::setHasTerrace);
 
         // Remplacement complet des photos si fourni
         if (dto.photos().isPresent()) {
@@ -203,6 +232,42 @@ public class ListingService extends BaseService{
 
         l.setUpdatedAt(OffsetDateTime.now().toInstant());
         return l;
+    }
+
+    /**
+     * Publier une annonce (DRAFT → PUBLISHED)
+     */
+    @Transactional
+    public ListingEntity publishListing(UUID id, UserEntity actor) {
+        var listing = listingRepo.findById(id);
+        if (listing == null) throw new NotFoundException("Listing not found");
+        ensureOwnerOrAdmin(listing, actor);
+        
+        if (listing.getStatus() != ListingStatus.DRAFT) {
+            throw HttpErrors.badRequest("INVALID_STATUS", "Seules les annonces en brouillon peuvent être publiées");
+        }
+        
+        listing.setStatus(ListingStatus.PUBLISHED);
+        listing.setUpdatedAt(OffsetDateTime.now().toInstant());
+        return listing;
+    }
+
+    /**
+     * Archiver une annonce (PUBLISHED → ARCHIVED)
+     */
+    @Transactional
+    public ListingEntity archiveListing(UUID id, UserEntity actor) {
+        var listing = listingRepo.findById(id);
+        if (listing == null) throw new NotFoundException("Listing not found");
+        ensureOwnerOrAdmin(listing, actor);
+        
+        if (listing.getStatus() != ListingStatus.PUBLISHED) {
+            throw HttpErrors.badRequest("INVALID_STATUS", "Seules les annonces publiées peuvent être archivées");
+        }
+        
+        listing.setStatus(ListingStatus.ARCHIVED);
+        listing.setUpdatedAt(OffsetDateTime.now().toInstant());
+        return listing;
     }
 
     @Transactional

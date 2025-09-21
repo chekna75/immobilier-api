@@ -36,6 +36,21 @@ public class ListingMapper {
                 e.getPrice(),
                 e.getTitle(),
                 e.getDescription(),
+                
+                // Géolocalisation
+                e.getLatitude(),
+                e.getLongitude(),
+                
+                // Champs enrichis
+                e.getRooms(),
+                e.getFloor(),
+                e.getBuildingYear(),
+                e.getEnergyClass(),
+                e.getHasElevator(),
+                e.getHasParking(),
+                e.getHasBalcony(),
+                e.getHasTerrace(),
+                
                 urls,
                 e.getCreatedAt(),
                 e.getUpdatedAt()

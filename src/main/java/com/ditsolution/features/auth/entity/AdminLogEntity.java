@@ -30,7 +30,7 @@ public class AdminLogEntity extends PanacheEntityBase {
     @Column(name = "target_id", nullable = false)
     public UUID targetId;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "JSONB")
     public String details;
 
     @Column(length = 45)

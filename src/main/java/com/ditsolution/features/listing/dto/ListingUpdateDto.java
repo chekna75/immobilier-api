@@ -13,5 +13,20 @@ public record ListingUpdateDto(
     Optional<BigDecimal> price,
     Optional<String> title,
     Optional<String> description,
+    
+    // Géolocalisation
+    Optional<BigDecimal> latitude,
+    Optional<BigDecimal> longitude,
+    
+    // Champs enrichis
+    Optional<Integer> rooms,
+    Optional<Integer> floor,
+    Optional<Integer> buildingYear,
+    Optional<String> energyClass,
+    Optional<Boolean> hasElevator,
+    Optional<Boolean> hasParking,
+    Optional<Boolean> hasBalcony,
+    Optional<Boolean> hasTerrace,
+    
     Optional<List<String>> photos
 ) {}

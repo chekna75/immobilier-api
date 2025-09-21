@@ -35,7 +35,7 @@ public class ListingEntity {
     private UserEntity owner;
 
     @Enumerated(EnumType.STRING) 
-    private ListingStatus status = ListingStatus.ACTIVE;
+    private ListingStatus status = ListingStatus.DRAFT;
     
     @Enumerated(EnumType.STRING) 
     private ListingType type;
@@ -44,6 +44,24 @@ public class ListingEntity {
     private BigDecimal price;
     private String title;
     private String description;
+    
+    // Géolocalisation
+    @Column(precision = 10, scale = 8)
+    private BigDecimal latitude;
+    
+    @Column(precision = 11, scale = 8)
+    private BigDecimal longitude;
+    
+    // Champs enrichis
+    private Integer rooms;
+    private Integer floor;
+    private Integer buildingYear;
+    private String energyClass;
+    private Boolean hasElevator = false;
+    private Boolean hasParking = false;
+    private Boolean hasBalcony = false;
+    private Boolean hasTerrace = false;
+    
     private Instant createdAt = Instant.now();
     private Instant updatedAt = Instant.now();
 
