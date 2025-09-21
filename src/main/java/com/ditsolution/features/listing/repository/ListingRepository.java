@@ -16,7 +16,7 @@ public class ListingRepository implements PanacheRepository<ListingEntity> {
 
     /** Rechercher par id */
     public ListingEntity findById(UUID id) {
-        return findById(id);
+        return find("id", id).firstResult();
     }
 
     /**

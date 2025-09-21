@@ -10,6 +10,7 @@ import org.hibernate.annotations.Generated;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Entity
 @Table(name = "admin_logs")
@@ -31,7 +32,8 @@ public class AdminLogEntity extends PanacheEntityBase {
     public UUID targetId;
 
     @Column(columnDefinition = "JSONB")
-    public String details;
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    public JsonNode details;
 
     @Column(length = 45)
     public String ip;

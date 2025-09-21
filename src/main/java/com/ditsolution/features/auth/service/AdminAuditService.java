@@ -4,6 +4,8 @@ import com.ditsolution.features.auth.entity.AdminLogEntity;
 import io.quarkus.hibernate.orm.panache.Panache;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
 
@@ -29,7 +31,22 @@ public class AdminAuditService {
         entry.action = action;
         entry.targetType = targetType;
         entry.targetId = targetId;
-        entry.details = details;
+        
+        // Convertir la string en JsonNode
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            entry.details = mapper.readTree(details);
+        } catch (Exception e) {
+            // Fallback: créer un objet JSON simple
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                entry.details = mapper.createObjectNode().put("message", details);
+            } catch (Exception ex) {
+                // Dernier recours: null
+                entry.details = null;
+            }
+        }
+        
         entry.ip = ip;
         entry.userAgent = userAgent;
         entry.persist();

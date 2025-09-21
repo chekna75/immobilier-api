@@ -15,6 +15,7 @@ import jakarta.ws.rs.NotFoundException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ApplicationScoped
 public class AdminModerationService {
@@ -60,15 +61,28 @@ public class AdminModerationService {
         details.put("listingTitle", listing.getTitle());
         details.put("ownerId", listing.getOwner().getId());
         
-        auditService.log(
-            admin.getId(),
-            AdminAuditService.ACTION_LISTING_REMOVE,
-            "LISTING",
-            listing.getId(),
-            details.toString(),
-            ip,
-            userAgent
-        );
+        try {
+            auditService.log(
+                admin.getId(),
+                AdminAuditService.ACTION_LISTING_REMOVE,
+                "LISTING",
+                listing.getId(),
+                new ObjectMapper().writeValueAsString(details),
+                ip,
+                userAgent
+            );
+        } catch (Exception e) {
+            // Fallback si JSON échoue
+            auditService.log(
+                admin.getId(),
+                AdminAuditService.ACTION_LISTING_REMOVE,
+                "LISTING",
+                listing.getId(),
+                "reason: " + reason + ", previousStatus: " + previousStatus.name(),
+                ip,
+                userAgent
+            );
+        }
 
         return listing;
     }
@@ -89,15 +103,28 @@ public class AdminModerationService {
         details.put("listingTitle", listing.getTitle());
         details.put("ownerId", listing.getOwner().getId());
         
-        auditService.log(
-            admin.getId(),
-            "LISTING_RESTORE",
-            "LISTING",
-            listing.getId(),
-            details.toString(),
-            ip,
-            userAgent
-        );
+        try {
+            auditService.log(
+                admin.getId(),
+                "LISTING_RESTORE",
+                "LISTING",
+                listing.getId(),
+                new ObjectMapper().writeValueAsString(details),
+                ip,
+                userAgent
+            );
+        } catch (Exception e) {
+            // Fallback si JSON échoue
+            auditService.log(
+                admin.getId(),
+                "LISTING_RESTORE",
+                "LISTING",
+                listing.getId(),
+                "reason: " + reason + ", newStatus: " + ListingStatus.DRAFT.name(),
+                ip,
+                userAgent
+            );
+        }
 
         return listing;
     }
