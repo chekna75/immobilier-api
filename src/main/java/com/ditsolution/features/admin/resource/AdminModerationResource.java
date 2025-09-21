@@ -4,7 +4,6 @@ import com.ditsolution.features.admin.dto.ModerateListingRequest;
 import com.ditsolution.features.admin.service.AdminModerationService;
 import com.ditsolution.features.auth.entity.UserEntity;
 import com.ditsolution.features.listing.entity.ListingEntity;
-import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Path("/admin/moderation")
-@Authenticated
 @RolesAllowed("ADMIN")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)

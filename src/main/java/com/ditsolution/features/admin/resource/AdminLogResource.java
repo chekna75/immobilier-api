@@ -2,7 +2,6 @@ package com.ditsolution.features.admin.resource;
 
 import com.ditsolution.features.admin.dto.AdminLogDto;
 import com.ditsolution.features.admin.service.AdminLogService;
-import io.quarkus.security.Authenticated;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -15,7 +14,6 @@ import java.util.Map;
 import java.util.UUID;
 
 @Path("/admin/logs")
-@Authenticated
 @RolesAllowed("ADMIN")
 @Produces(MediaType.APPLICATION_JSON)
 public class AdminLogResource {
