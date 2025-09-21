@@ -43,6 +43,22 @@ public class UploadedImageEntity extends PanacheEntity {
     @Column(name = "is_used", nullable = false)
     private Boolean isUsed = false;
 
+    // Champs pour les miniatures
+    @Column(name = "thumbnail_s3_key", length = 1000)
+    private String thumbnailS3Key;
+
+    @Column(name = "thumbnail_public_url", length = 1000)
+    private String thumbnailPublicUrl;
+
+    @Column(name = "thumbnail_generated", nullable = false)
+    private Boolean thumbnailGenerated = false;
+
+    @Column(name = "image_width")
+    private Integer imageWidth;
+
+    @Column(name = "image_height")
+    private Integer imageHeight;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -71,5 +87,18 @@ public class UploadedImageEntity extends PanacheEntity {
 
     public static java.util.List<UploadedImageEntity> findUnusedByUserId(UUID userId) {
         return find("userId = ?1 and isUsed = ?2", userId, false).list();
+    }
+
+    public static java.util.List<UploadedImageEntity> findUnusedImages() {
+        return find("isUsed = ?1", false).list();
+    }
+
+    public static java.util.List<UploadedImageEntity> findImagesWithoutThumbnails() {
+        return find("thumbnailGenerated = ?1", false).list();
+    }
+
+    public static java.util.List<UploadedImageEntity> findOldUnusedImages(int daysOld) {
+        Instant cutoffDate = Instant.now().minusSeconds(daysOld * 24 * 60 * 60);
+        return find("isUsed = ?1 and createdAt < ?2", false, cutoffDate).list();
     }
 }

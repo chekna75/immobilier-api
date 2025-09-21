@@ -35,6 +35,9 @@ public class S3Service {
     @ConfigProperty(name = "app.upload.presigned-url-expiration-seconds", defaultValue = "3600")
     int presignedUrlExpirationSeconds;
 
+    @Inject
+    ThumbnailService thumbnailService;
+
     private S3Client s3Client;
     private S3Presigner s3Presigner;
 
@@ -128,6 +131,20 @@ public class S3Service {
             extension = originalFileName.substring(originalFileName.lastIndexOf("."));
         }
         return UUID.randomUUID().toString() + extension;
+    }
+
+    /**
+     * Déclenche la génération de miniature pour une image après upload
+     */
+    public void triggerThumbnailGeneration(UploadedImageEntity imageEntity) {
+        try {
+            // La génération de miniature sera faite de manière asynchrone
+            // pour ne pas bloquer l'upload
+            thumbnailService.generateThumbnail(imageEntity);
+        } catch (Exception e) {
+            // Log l'erreur mais ne pas faire échouer l'upload
+            System.err.println("Erreur lors de la génération de miniature pour " + imageEntity.getFileName() + ": " + e.getMessage());
+        }
     }
 
     public void close() {

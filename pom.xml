@@ -110,6 +110,19 @@
             <version>2.25.8</version>
         </dependency>
 
+        <!-- ImageIO pour le traitement d'images -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+        
+        <!-- ImageMagick pour la génération de miniatures -->
+        <dependency>
+            <groupId>org.im4java</groupId>
+            <artifactId>im4java</artifactId>
+            <version>1.4.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

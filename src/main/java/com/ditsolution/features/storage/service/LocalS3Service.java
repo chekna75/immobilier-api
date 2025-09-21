@@ -2,7 +2,6 @@ package com.ditsolution.features.storage.service;
 
 import com.ditsolution.features.storage.entity.UploadedImageEntity;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
