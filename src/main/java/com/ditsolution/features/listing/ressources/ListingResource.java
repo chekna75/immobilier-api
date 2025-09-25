@@ -11,6 +11,7 @@ import com.ditsolution.features.listing.mapper.ListingMapper;
 import com.ditsolution.features.listing.services.ListingService;
 import com.ditsolution.shared.dto.PagedResponse;
 
+import io.quarkus.security.Authenticated;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.annotation.security.RolesAllowed;
@@ -39,15 +40,24 @@ public class ListingResource {
     // ---------------------------
     @POST
     @Path("/create")
-    @RolesAllowed({"OWNER", "ADMIN"})
+    @Authenticated
     @Transactional
     public Response create(ListingCreateDto dto) {
         var actor = currentUser();
-        System.out.println("le role " + actor);
-        if(actor.getRole() == UserEntity.Role.TENANT){
-            System.out.println("Erreur de role");
-            throw new ForbiddenException("Seuls OWNER ou ADMIN peuvent effectuer cette action");
+        if (actor == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                .entity(new ErrorDto("UNAUTHORIZED", "Utilisateur non authentifié")).build();
         }
+        
+        System.out.println("le role " + actor);
+        
+        // Vérification stricte des rôles autorisés
+        if (actor.getRole() != UserEntity.Role.OWNER && actor.getRole() != UserEntity.Role.ADMIN) {
+            System.out.println("Erreur de role: " + actor.getRole() + " - Seuls OWNER et ADMIN peuvent créer des annonces");
+            return Response.status(Response.Status.FORBIDDEN)
+                .entity(new ErrorDto("FORBIDDEN", "Seuls les propriétaires (OWNER) et administrateurs (ADMIN) peuvent créer des annonces")).build();
+        }
+        
         ListingEntity l = listingService.createListing(actor, dto);
         return Response.status(Response.Status.CREATED).entity(mapper.toDto(l)).build();
     }
@@ -154,4 +164,7 @@ public class ListingResource {
             return null;
         }
     }
+    
+    // DTO pour les erreurs
+    record ErrorDto(String error, String message) {}
 }

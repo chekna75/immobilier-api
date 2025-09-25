@@ -61,7 +61,16 @@ public class AuthResource {
             if (e164 == null) return badRequest("Numéro de téléphone invalide");
             user.phoneE164 = e164;
         }
-        user.role = UserEntity.Role.TENANT; // 🔒 force rôle
+        // Assigner le rôle demandé ou TENANT par défaut
+        if (req.role() != null && !req.role().isBlank()) {
+            try {
+                user.role = UserEntity.Role.valueOf(req.role().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                user.role = UserEntity.Role.TENANT; // Rôle invalide, utiliser TENANT par défaut
+            }
+        } else {
+            user.role = UserEntity.Role.TENANT; // Pas de rôle spécifié, utiliser TENANT par défaut
+        }
         user.status = UserEntity.Status.ACTIVE;
         user.persist();
     
