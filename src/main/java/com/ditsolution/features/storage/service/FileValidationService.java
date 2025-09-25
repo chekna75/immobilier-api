@@ -18,6 +18,9 @@ public class FileValidationService {
     @ConfigProperty(name = "app.upload.max-photos-per-listing", defaultValue = "5")
     int maxPhotosPerListing;
 
+    @ConfigProperty(name = "app.upload.min-photos-per-listing", defaultValue = "1")
+    int minPhotosPerListing;
+
     public boolean isValidFileFormat(String fileName) {
         if (fileName == null || fileName.isEmpty()) {
             return false;
@@ -35,7 +38,11 @@ public class FileValidationService {
     }
 
     public boolean isValidPhotoCount(int photoCount) {
-        return photoCount <= maxPhotosPerListing;
+        return photoCount >= minPhotosPerListing && photoCount <= maxPhotosPerListing;
+    }
+
+    public boolean hasMinimumPhotos(int photoCount) {
+        return photoCount >= minPhotosPerListing;
     }
 
     public String getFileExtension(String fileName) {
@@ -55,5 +62,9 @@ public class FileValidationService {
 
     public int getMaxPhotosPerListing() {
         return maxPhotosPerListing;
+    }
+
+    public int getMinPhotosPerListing() {
+        return minPhotosPerListing;
     }
 }

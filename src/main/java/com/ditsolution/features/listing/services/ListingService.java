@@ -80,10 +80,13 @@ public class ListingService extends BaseService{
 
         listingRepo.persist(listing);
 
-        // Photos (≤ 5) avec validation
+        // Photos (1-5) avec validation obligatoire
         var photos = safeList(dto.photos());
+        if (photos.isEmpty()) {
+            throw HttpErrors.badRequest("PHOTOS_REQUIRED", "Au moins " + fileValidationService.getMinPhotosPerListing() + " photo est obligatoire");
+        }
         if (!fileValidationService.isValidPhotoCount(photos.size())) {
-            throw HttpErrors.badRequest("PHOTOS_LIMIT", "Maximum " + fileValidationService.getMaxPhotosPerListing() + " photos");
+            throw HttpErrors.badRequest("PHOTOS_LIMIT", "Entre " + fileValidationService.getMinPhotosPerListing() + " et " + fileValidationService.getMaxPhotosPerListing() + " photos requises");
         }
         
         int ordering = 0;
