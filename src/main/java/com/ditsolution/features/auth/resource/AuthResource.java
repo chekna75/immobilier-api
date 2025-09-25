@@ -4,6 +4,7 @@ import com.ditsolution.common.services.EmailService;
 import com.ditsolution.features.auth.dto.AuthDtos.*;
 import com.ditsolution.features.auth.entity.OtpCodeEntity;
 import com.ditsolution.features.auth.entity.RefreshTokenEntity;
+import com.ditsolution.features.auth.entity.RoleChangeRequestEntity;
 import com.ditsolution.features.auth.entity.UserEntity;
 import com.ditsolution.features.auth.mapper.AuthMappers;
 import com.ditsolution.features.auth.service.PasswordService;
@@ -206,6 +207,55 @@ public class AuthResource {
         if (xff == null || xff.isBlank()) return null;
         int idx = xff.indexOf(',');
         return (idx >= 0 ? xff.substring(0, idx) : xff).trim();
+    }
+
+    // Helper method to get current user
+    private UserEntity currentUser() {
+        String email = identity.getPrincipal().getName();
+        return UserEntity.find("email", email).firstResult();
+    }
+
+    @POST
+    @Path("/request-role-change")
+    @Authenticated
+    @Transactional
+    public Response requestRoleChange(RoleChangeRequestDto request) {
+        if (request == null || request.requestedRole() == null || request.requestedRole().isBlank()) {
+            return badRequest("requestedRole est obligatoire");
+        }
+
+        UserEntity user = currentUser();
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                .entity(new ErrorDto("UNAUTHORIZED", "Utilisateur non trouvé")).build();
+        }
+
+        // Vérifier si l'utilisateur a déjà une demande en attente
+        RoleChangeRequestEntity existingRequest = RoleChangeRequestEntity.find(
+            "user = ?1 AND status = 'PENDING'", user
+        ).firstResult();
+
+        if (existingRequest != null) {
+            return Response.status(Response.Status.CONFLICT)
+                .entity(new ErrorDto("PENDING_REQUEST", "Vous avez déjà une demande en attente")).build();
+        }
+
+        // Créer la nouvelle demande
+        RoleChangeRequestEntity roleRequest = new RoleChangeRequestEntity();
+        roleRequest.setUser(user);
+        roleRequest.setRequestedRole(request.requestedRole().toUpperCase());
+        roleRequest.setReason(request.reason());
+        roleRequest.setStatus("PENDING");
+        roleRequest.setCreatedAt(OffsetDateTime.now());
+        roleRequest.persist();
+
+        return Response.ok(new RoleChangeRequestResponseDto(
+            roleRequest.id,
+            roleRequest.getRequestedRole(),
+            roleRequest.getStatus(),
+            roleRequest.getReason(),
+            roleRequest.getCreatedAt()
+        )).build();
     }
     
 }

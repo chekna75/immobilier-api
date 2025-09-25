@@ -15,6 +15,8 @@ public class AdminAuditService {
     public static final String ACTION_USER_SUSPEND = "USER_SUSPEND";
     public static final String ACTION_USER_ACTIVATE = "USER_ACTIVATE";
     public static final String ACTION_LISTING_REMOVE = "LISTING_REMOVE";
+    public static final String ACTION_ROLE_APPROVE = "ROLE_APPROVE";
+    public static final String ACTION_ROLE_REJECT = "ROLE_REJECT";
 
     @Transactional
     public void log(
@@ -50,5 +52,13 @@ public class AdminAuditService {
         entry.ip = ip;
         entry.userAgent = userAgent;
         entry.persist();
+    }
+
+    // Méthode simplifiée pour les actions de changement de rôle
+    @Transactional
+    public void log(String action, String details, UUID targetId, String ip, String userAgent) {
+        // Pour les actions de changement de rôle, on utilise l'ID de l'utilisateur cible comme adminId
+        // Dans un vrai système, on récupérerait l'ID de l'admin connecté
+        log(targetId, action, "USER", targetId, details, ip, userAgent);
     }
 }

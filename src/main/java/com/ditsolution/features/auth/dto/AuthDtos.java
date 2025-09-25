@@ -1,5 +1,7 @@
 package com.ditsolution.features.auth.dto;
 
+import java.time.OffsetDateTime;
+
 public class AuthDtos {
     public record RegisterRequest(String email, String password, String phone, String firstName, String lastName, String role) {}
     public record LoginEmailRequest(String email, String password) {}
@@ -9,6 +11,10 @@ public class AuthDtos {
     public record UpdateMeRequest(String firstName, String lastName, String avatarUrl) {}
     public record ChangePasswordRequest(String currentPassword, String newPassword) {}
     public record AuthResponse(String accessToken, String refreshToken, UserDto user) {}
+    
+    // DTOs pour les demandes de changement de rôle
+    public record RoleChangeRequestDto(String requestedRole, String reason) {}
+    public record RoleChangeRequestResponseDto(Long id, String requestedRole, String status, String reason, OffsetDateTime createdAt) {}
 }
 
 
