@@ -1,5 +1,5 @@
 -- Table pour stocker les demandes de changement de rôle
-CREATE TABLE role_change_requests (
+CREATE TABLE IF NOT EXISTS role_change_requests (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     requested_role VARCHAR(20) NOT NULL,
