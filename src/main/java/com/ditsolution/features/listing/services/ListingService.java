@@ -167,6 +167,21 @@ public class ListingService extends BaseService{
         return new PagedDto<>(items, total, page.page(), page.size());
     }
 
+    public PagedDto<ListingEntity> getUserListings(UUID userId, int page, int size) {
+        // Récupérer toutes les annonces de l'utilisateur (y compris DRAFT, PUBLISHED, ARCHIVED)
+        // Exclure seulement les REMOVED (soft delete)
+        var where = "owner.id = :userId AND status != :removed";
+        var params = new HashMap<String, Object>();
+        params.put("userId", userId);
+        params.put("removed", ListingStatus.REMOVED);
+
+        var q = listingRepo.find(where, params).page(page, size);
+        var items = q.list();
+        long total = listingRepo.count(where, params);
+
+        return new PagedDto<>(items, total, page, size);
+    }
+
     public ListingEntity getListing(UUID id) {
         var l = listingRepo.findById(id);
         if (l == null || l.getStatus() == ListingStatus.REMOVED) {

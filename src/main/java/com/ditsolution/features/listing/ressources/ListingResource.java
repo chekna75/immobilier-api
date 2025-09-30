@@ -118,7 +118,28 @@ public class ListingResource {
     }
 
     // ---------------------------
-    // 5. DELETE (soft delete)
+    // 5. GET USER LISTINGS
+    // ---------------------------
+    @GET
+    @Path("/my")
+    @Authenticated
+    public Response getUserListings(
+        @QueryParam("page") @DefaultValue("0") int page,
+        @QueryParam("size") @DefaultValue("10") int size
+    ) {
+        var actor = currentUser();
+        if (actor == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                .entity(new ErrorDto("UNAUTHORIZED", "Utilisateur non authentifié")).build();
+        }
+        
+        var result = listingService.getUserListings(actor.getId(), page, size);
+        var items = result.items().stream().map(mapper::toDto).toList();
+        return Response.ok(new PagedResponse<>(items, result.total(), page, size)).build();
+    }
+
+    // ---------------------------
+    // 6. DELETE (soft delete)
     // ---------------------------
     @DELETE
     @Path("/{id}")
