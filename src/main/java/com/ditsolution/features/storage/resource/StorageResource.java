@@ -110,6 +110,7 @@ public class StorageResource {
             response.setUploadUrl(uploadUrl);
             response.setPublicUrl(publicUrl);
             response.setFileName(fileName);
+            response.setUserId(currentUser.getId().toString());
 
             return Response.ok(response).build();
 
@@ -198,6 +199,99 @@ public class StorageResource {
             return UserEntity.findById(userId);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    @GET
+    @Path("/image/{userId}/{fileName}")
+    @Operation(
+        summary = "Servir une image via l'API",
+        description = "Endpoint proxy pour servir les images S3 via l'API"
+    )
+    public Response serveImage(@PathParam("userId") String userId, @PathParam("fileName") String fileName) {
+        try {
+            // Construire l'URL S3
+            String s3Url = String.format("https://app-immo.s3.eu-north-1.amazonaws.com/users/%s/listings/%s", 
+                userId, fileName);
+            
+            // Faire une requête vers S3 pour récupérer l'image
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(s3Url))
+                .GET()
+                .build();
+            
+            java.net.http.HttpResponse<byte[]> response = client.send(request, 
+                java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+            
+            if (response.statusCode() == 200) {
+                // Déterminer le type de contenu
+                String contentType = "image/jpeg"; // par défaut
+                if (fileName.toLowerCase().endsWith(".png")) {
+                    contentType = "image/png";
+                } else if (fileName.toLowerCase().endsWith(".webp")) {
+                    contentType = "image/webp";
+                }
+                
+                return Response.ok(response.body())
+                    .type(contentType)
+                    .header("Cache-Control", "public, max-age=3600")
+                    .build();
+            } else {
+                return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Image non trouvée")
+                    .build();
+            }
+            
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("Erreur lors de la récupération de l'image: " + e.getMessage())
+                .build();
+        }
+    }
+
+    @POST
+    @Path("/upload")
+    @RolesAllowed({"OWNER", "TENANT"})
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Operation(
+        summary = "Upload direct d'image via le backend",
+        description = "Upload direct d'une image via le backend pour contourner les problèmes CORS"
+    )
+    @APIResponse(
+        responseCode = "200",
+        description = "Image uploadée avec succès",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(implementation = UploadResponseDto.class)
+        )
+    )
+    @APIResponse(
+        responseCode = "400",
+        description = "Format de fichier non autorisé ou paramètres invalides"
+    )
+    @APIResponse(
+        responseCode = "401",
+        description = "Non authentifié"
+    )
+    public Response uploadImageDirect() {
+        try {
+            UserEntity currentUser = getCurrentUser();
+            if (currentUser == null) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(new ErrorResponse("Utilisateur non trouvé"))
+                        .build();
+            }
+
+            // Pour l'instant, retourner une erreur indiquant que cette fonctionnalité n'est pas encore implémentée
+            return Response.status(Response.Status.NOT_IMPLEMENTED)
+                    .entity(new ErrorResponse("Upload direct non encore implémenté. Veuillez configurer CORS sur S3."))
+                    .build();
+
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Erreur lors de l'upload: " + e.getMessage()))
+                    .build();
         }
     }
 
