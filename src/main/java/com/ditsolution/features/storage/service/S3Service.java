@@ -74,6 +74,7 @@ public class S3Service {
                 .bucket(bucket)
                 .key(key)
                 .contentType(contentType)
+                .acl(software.amazon.awssdk.services.s3.model.ObjectCannedACL.PUBLIC_READ)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()

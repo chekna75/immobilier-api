@@ -19,6 +19,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.UUID;
 import com.ditsolution.features.storage.entity.UploadedImageEntity;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Path("/storage")
 @Produces(MediaType.APPLICATION_JSON)
@@ -34,6 +35,34 @@ public class StorageResource {
 
     @Inject
     JsonWebToken jwt;
+
+    @ConfigProperty(name = "aws.s3.region")
+    String region;
+
+    @ConfigProperty(name = "aws.s3.bucket")
+    String bucket;
+
+    @ConfigProperty(name = "aws.s3.access-key")
+    String accessKey;
+
+    @ConfigProperty(name = "aws.s3.secret-key")
+    String secretKey;
+
+    private software.amazon.awssdk.services.s3.S3Client s3Client;
+
+    private void initializeClients() {
+        if (s3Client == null) {
+            software.amazon.awssdk.auth.credentials.AwsBasicCredentials awsCredentials = 
+                software.amazon.awssdk.auth.credentials.AwsBasicCredentials.create(accessKey, secretKey);
+            software.amazon.awssdk.auth.credentials.StaticCredentialsProvider credentialsProvider = 
+                software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(awsCredentials);
+
+            s3Client = software.amazon.awssdk.services.s3.S3Client.builder()
+                    .region(software.amazon.awssdk.regions.Region.of(region))
+                    .credentialsProvider(credentialsProvider)
+                    .build();
+        }
+    }
 
     @POST
     @Path("/sign")
@@ -293,6 +322,13 @@ public class StorageResource {
                     .entity(new ErrorResponse("Erreur lors de l'upload: " + e.getMessage()))
                     .build();
         }
+    }
+
+    private String generateUniqueFileName(String originalFileName) {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String randomString = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String extension = originalFileName.substring(originalFileName.lastIndexOf('.'));
+        return String.format("listing_%s_%s%s", timestamp, randomString, extension);
     }
 
     private String extractFileNameFromUrl(String uploadUrl) {
