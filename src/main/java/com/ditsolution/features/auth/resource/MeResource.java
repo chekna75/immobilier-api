@@ -2,6 +2,7 @@ package com.ditsolution.features.auth.resource;
 
 import com.ditsolution.features.auth.dto.AuthDtos.UpdateMeRequest;
 import com.ditsolution.features.auth.dto.AuthDtos.ChangePasswordRequest;
+import com.ditsolution.features.auth.dto.ProfileUpdateDto;
 import com.ditsolution.features.auth.entity.UserEntity;
 import com.ditsolution.features.auth.mapper.AuthMappers;
 import com.ditsolution.features.auth.service.PasswordService;
@@ -95,6 +96,59 @@ public class MeResource {
         if (req.avatarUrl()!=null && !req.avatarUrl().isBlank()) user.avatarUrl = req.avatarUrl().trim();
         return Response.ok(AuthMappers.toDto(user)).build();
       }
+
+    // PATCH /me/profile : permet de mettre à jour email, phone et mot de passe
+    @PATCH
+    @Path("/profile")
+    @Transactional
+    public Response updateProfile(ProfileUpdateDto req) {
+        var user = currentUser();
+        if (user == null) return unauthorized();
+        
+        // Vérifier si l'email existe déjà (sauf pour l'utilisateur actuel)
+        if (!user.email.equals(req.email())) {
+            var existingUser = UserEntity.find("email", req.email()).firstResult();
+            if (existingUser != null) {
+                return Response.status(Response.Status.CONFLICT)
+                    .entity(new ErrorDto("EMAIL_EXISTS", "Cette adresse email est déjà utilisée"))
+                    .build();
+            }
+        }
+        
+        // Vérifier le mot de passe actuel SEULEMENT si on veut changer le mot de passe
+        if (req.newPassword() != null && !req.newPassword().isBlank()) {
+            if (req.currentPassword() == null || req.currentPassword().isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorDto("CURRENT_PASSWORD_REQUIRED", "Le mot de passe actuel est requis pour changer le mot de passe"))
+                    .build();
+            }
+            
+            if (!passwordService.matches(req.currentPassword(), user.passwordHash)) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(new ErrorDto("INVALID_CREDENTIALS", "Mot de passe actuel invalide"))
+                    .build();
+            }
+            
+            if (req.newPassword().length() < 6) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorDto("WEAK_PASSWORD", "Le nouveau mot de passe doit contenir au moins 6 caractères"))
+                    .build();
+            }
+            
+            user.passwordHash = passwordService.hash(req.newPassword());
+            
+            // Révoquer tous les refresh tokens de l'utilisateur (forcer reconnexion)
+            RefreshTokenEntity.stream("user = ?1 and revokedAt is null", user)
+                .map(RefreshTokenEntity.class::cast)
+                .forEach(rt -> tokenService.revokeRefresh(rt));
+        }
+        
+        // Mettre à jour les informations (email et téléphone)
+        user.email = req.email().trim();
+        user.phoneE164 = req.phone().trim();
+        
+        return Response.ok(AuthMappers.toDto(user)).build();
+    }
       private UserEntity currentUser() {
         var p = identity==null ? null : identity.getPrincipal();
         if (p == null) return null;
