@@ -15,6 +15,10 @@ public class AuthDtos {
     // DTOs pour les demandes de changement de rôle
     public record RoleChangeRequestDto(String requestedRole, String reason) {}
     public record RoleChangeRequestResponseDto(Long id, String requestedRole, String status, String reason, OffsetDateTime createdAt) {}
+    
+    // DTOs pour la réinitialisation de mot de passe
+    public record ForgotPasswordRequest(String email) {}
+    public record ResetPasswordRequest(String token, String newPassword) {}
 }
 
 

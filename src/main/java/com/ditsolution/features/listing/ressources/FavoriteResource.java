@@ -1,4 +1,4 @@
-package com.ditsolution.features.listing.resource;
+package com.ditsolution.features.listing.ressources;
 
 import com.ditsolution.features.listing.dto.FavoriteDto;
 import com.ditsolution.features.listing.service.FavoriteService;
@@ -12,7 +12,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import java.util.List;
 import java.util.UUID;
 
-@Path("/api/favorites")
+@Path("/favorites")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class FavoriteResource {
@@ -120,4 +120,3 @@ public class FavoriteResource {
         }
     }
 }
-

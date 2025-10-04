@@ -98,7 +98,8 @@ public class AuthResource {
     public Response loginEmail(LoginEmailRequest req, @HeaderParam("User-Agent") String ua, @HeaderParam("X-Forwarded-For") String ip) {
         UserEntity user = UserEntity.find("email", req.email()).firstResult();
         if (user == null || user.passwordHash == null || !passwordService.matches(req.password(), user.passwordHash)) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Identifiants invalides").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                .entity(new ErrorDto("INVALID_CREDENTIALS", "Email ou mot de passe incorrect")).build();
         }
         String access = tokenService.generateAccessToken(user);
         String rawRefresh = UUID.randomUUID().toString();
@@ -113,7 +114,8 @@ public class AuthResource {
     public Response requestOtp(RequestOtpRequest req) {
         String phone = phoneService.normalizeE164(req.phone());
         if (phone == null || phone.isBlank()) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("phone requis").build();
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorDto("VALIDATION_ERROR", "Numéro de téléphone requis")).build();
         }
         UserEntity user = UserEntity.find("phoneE164", phone).firstResult();
         if (user == null) {
@@ -128,13 +130,15 @@ public class AuthResource {
         OffsetDateTime now = OffsetDateTime.now();
         OtpCodeEntity last = OtpCodeEntity.find("user = ?1 order by createdAt desc", user).firstResult();
         if (last != null && last.createdAt != null && ChronoUnit.SECONDS.between(last.createdAt, now) < 60) {
-            return Response.status(Response.Status.TOO_MANY_REQUESTS).entity("Cooldown 60s").build();
+            return Response.status(Response.Status.TOO_MANY_REQUESTS)
+                .entity(new ErrorDto("RATE_LIMIT", "Veuillez attendre 60 secondes avant de demander un nouveau code")).build();
         }
         // max 5/jour
         OffsetDateTime startOfDay = now.truncatedTo(ChronoUnit.DAYS);
         long countToday = OtpCodeEntity.find("user = ?1 and createdAt >= ?2", user, startOfDay).count();
         if (countToday >= 5) {
-            return Response.status(Response.Status.TOO_MANY_REQUESTS).entity("Max 5 OTP/jour").build();
+            return Response.status(Response.Status.TOO_MANY_REQUESTS)
+                .entity(new ErrorDto("RATE_LIMIT", "Maximum 5 codes par jour atteint")).build();
         }
         String code = String.format("%06d", (int)(Math.random() * 1_000_000));
         OtpCodeEntity otp = new OtpCodeEntity();
@@ -157,14 +161,18 @@ public class AuthResource {
     public Response loginOtp(LoginOtpRequest req, @HeaderParam("User-Agent") String ua, @HeaderParam("X-Forwarded-For") String ip) {
         String phone = phoneService.normalizeE164(req.phone());
         UserEntity user = UserEntity.find("phoneE164", phone).firstResult();
-        if (user == null) return Response.status(Response.Status.UNAUTHORIZED).build();
+        if (user == null) return Response.status(Response.Status.UNAUTHORIZED)
+            .entity(new ErrorDto("USER_NOT_FOUND", "Utilisateur non trouvé")).build();
         OffsetDateTime now = OffsetDateTime.now();
         OtpCodeEntity otp = OtpCodeEntity.find("user = ?1 and usedAt is null and expiresAt > ?2 order by createdAt desc", user, now).firstResult();
-        if (otp == null) return Response.status(Response.Status.UNAUTHORIZED).entity("OTP invalide").build();
-        if (otp.attemptCount >= 5) return Response.status(Response.Status.TOO_MANY_REQUESTS).entity("Trop d'essais").build();
+        if (otp == null) return Response.status(Response.Status.UNAUTHORIZED)
+            .entity(new ErrorDto("INVALID_OTP", "Code OTP invalide ou expiré")).build();
+        if (otp.attemptCount >= 5) return Response.status(Response.Status.TOO_MANY_REQUESTS)
+            .entity(new ErrorDto("TOO_MANY_ATTEMPTS", "Trop de tentatives, veuillez demander un nouveau code")).build();
         otp.attemptCount += 1;
         if (!otp.code.equals(req.code())) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("OTP invalide").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                .entity(new ErrorDto("INVALID_OTP", "Code OTP incorrect")).build();
         }
         otp.usedAt = now;
         user.phoneVerified = true;
@@ -265,6 +273,112 @@ public class AuthResource {
             roleRequest.getReason(),
             roleRequest.getCreatedAt()
         )).build();
+    }
+
+    @POST
+    @Path("/forgot-password")
+    @Transactional
+    public Response forgotPassword(ForgotPasswordRequest req) {
+        if (req == null || req.email() == null || req.email().isBlank()) {
+            return badRequest("Email est obligatoire");
+        }
+
+        String email = req.email().trim().toLowerCase();
+        UserEntity user = UserEntity.find("email", email).firstResult();
+        
+        // Pour des raisons de sécurité, on ne révèle pas si l'email existe ou non
+        if (user == null) {
+            // Retourner toujours un succès pour éviter l'énumération d'emails
+            return Response.status(Response.Status.NO_CONTENT).build();
+        }
+
+        // Vérifier le cooldown (60 secondes)
+        OffsetDateTime now = OffsetDateTime.now();
+        OtpCodeEntity lastReset = OtpCodeEntity.find(
+            "user = ?1 and purpose = 'RESET_PASSWORD' order by createdAt desc", 
+            user
+        ).firstResult();
+        
+        if (lastReset != null && lastReset.createdAt != null && 
+            ChronoUnit.SECONDS.between(lastReset.createdAt, now) < 60) {
+            return Response.status(Response.Status.TOO_MANY_REQUESTS)
+                .entity(new ErrorDto("RATE_LIMIT", "Veuillez attendre 60 secondes avant de demander un nouveau code")).build();
+        }
+
+        // Max 3 demandes par jour
+        OffsetDateTime startOfDay = now.truncatedTo(ChronoUnit.DAYS);
+        long countToday = OtpCodeEntity.find(
+            "user = ?1 and purpose = 'RESET_PASSWORD' and createdAt >= ?2", 
+            user, startOfDay
+        ).count();
+        
+        if (countToday >= 3) {
+            return Response.status(Response.Status.TOO_MANY_REQUESTS)
+                .entity(new ErrorDto("RATE_LIMIT", "Maximum 3 demandes de réinitialisation par jour")).build();
+        }
+
+        // Générer un token de réinitialisation
+        String resetToken = UUID.randomUUID().toString();
+        OtpCodeEntity resetCode = new OtpCodeEntity();
+        resetCode.id = UUID.randomUUID();
+        resetCode.user = user;
+        resetCode.code = resetToken;
+        resetCode.channel = OtpCodeEntity.Channel.EMAIL;
+        resetCode.purpose = OtpCodeEntity.Purpose.RESET_PASSWORD;
+        resetCode.expiresAt = now.plusHours(1); // Token valide 1 heure
+        resetCode.attemptCount = 0;
+        resetCode.createdAt = now;
+        resetCode.persist();
+
+        // TODO: Envoyer l'email avec le lien de réinitialisation
+        // emailService.sendPasswordResetEmail(user.email, user.firstName, resetToken);
+
+        return Response.status(Response.Status.NO_CONTENT).build();
+    }
+
+    @POST
+    @Path("/reset-password")
+    @Transactional
+    public Response resetPassword(ResetPasswordRequest req) {
+        if (req == null || req.token() == null || req.newPassword() == null ||
+            req.token().isBlank() || req.newPassword().isBlank()) {
+            return badRequest("Token et nouveau mot de passe sont obligatoires");
+        }
+
+        if (req.newPassword().length() < 8) {
+            return badRequest("Le mot de passe doit contenir au moins 8 caractères");
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OtpCodeEntity resetCode = OtpCodeEntity.find(
+            "code = ?1 and purpose = 'RESET_PASSWORD' and usedAt is null and expiresAt > ?2", 
+            req.token(), now
+        ).firstResult();
+
+        if (resetCode == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                .entity(new ErrorDto("INVALID_TOKEN", "Token de réinitialisation invalide ou expiré")).build();
+        }
+
+        if (resetCode.attemptCount >= 5) {
+            return Response.status(Response.Status.TOO_MANY_REQUESTS)
+                .entity(new ErrorDto("TOO_MANY_ATTEMPTS", "Trop de tentatives, veuillez demander un nouveau token")).build();
+        }
+
+        // Marquer le token comme utilisé
+        resetCode.usedAt = now;
+        resetCode.attemptCount += 1;
+
+        // Mettre à jour le mot de passe de l'utilisateur
+        UserEntity user = resetCode.user;
+        user.passwordHash = passwordService.hash(req.newPassword());
+        
+        // Révoquer tous les refresh tokens de l'utilisateur (forcer reconnexion)
+        RefreshTokenEntity.stream("user = ?1 and revokedAt is null", user)
+            .map(RefreshTokenEntity.class::cast)
+            .forEach(rt -> tokenService.revokeRefresh(rt));
+
+        return Response.status(Response.Status.NO_CONTENT).build();
     }
     
 }
