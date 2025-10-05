@@ -55,7 +55,7 @@ public class WebSocketService {
             wsMessage.getData().put("isTyping", isTyping);
             
             // Envoyer à tous les autres participants de la conversation
-            MessageWebSocket.sendMessageToConversation(conversationId, wsMessage, userId);
+            MessageWebSocket.sendMessageToConversation(conversationId, wsMessage, null);
             
             logger.debug("Notification de frappe envoyée pour la conversation: {}", conversationId);
         } catch (Exception e) {
@@ -86,7 +86,7 @@ public class WebSocketService {
     /**
      * Notifie qu'un utilisateur est en ligne
      */
-    public void notifyUserOnline(Long userId) {
+    public void notifyUserOnline(java.util.UUID userId) {
         try {
             MessageWebSocket.WebSocketMessage wsMessage = new MessageWebSocket.WebSocketMessage();
             wsMessage.setType("user_online");
@@ -105,7 +105,7 @@ public class WebSocketService {
     /**
      * Notifie qu'un utilisateur est hors ligne
      */
-    public void notifyUserOffline(Long userId) {
+    public void notifyUserOffline(java.util.UUID userId) {
         try {
             MessageWebSocket.WebSocketMessage wsMessage = new MessageWebSocket.WebSocketMessage();
             wsMessage.setType("user_offline");
@@ -124,7 +124,7 @@ public class WebSocketService {
     /**
      * Notifie une erreur à un utilisateur spécifique
      */
-    public void notifyError(Long userId, String errorMessage) {
+    public void notifyError(java.util.UUID userId, String errorMessage) {
         try {
             MessageWebSocket.WebSocketMessage wsMessage = new MessageWebSocket.WebSocketMessage();
             wsMessage.setType("error");

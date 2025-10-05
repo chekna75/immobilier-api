@@ -18,6 +18,7 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -40,15 +41,27 @@ public class ConversationService {
      */
     @Transactional
     public ConversationDto createOrGetConversation(CreateConversationRequest request, UserEntity currentUser) {
+        if (currentUser == null) {
+            throw new RuntimeException("Utilisateur non trouvé");
+        }
+        
         // Récupérer la propriété
-        ListingEntity property = listingRepository.findById(request.getPropertyId());
+        ListingEntity property = listingRepository.findById(UUID.fromString(request.getPropertyId()));
         if (property == null) {
             throw new RuntimeException("Propriété non trouvée");
         }
         
         // Déterminer le rôle de l'utilisateur
-        UserEntity tenant = currentUser;
         UserEntity owner = property.getOwner();
+        UserEntity tenant;
+        
+        if (currentUser.equals(owner)) {
+            // L'utilisateur actuel est le propriétaire, il ne peut pas créer de conversation
+            throw new RuntimeException("Un propriétaire ne peut pas créer de conversation pour sa propre propriété");
+        } else {
+            // L'utilisateur actuel est le locataire
+            tenant = currentUser;
+        }
         
         // Vérifier si une conversation existe déjà
         Optional<ConversationEntity> existingConversation = conversationRepository
@@ -123,8 +136,8 @@ public class ConversationService {
     /**
      * Récupère une conversation par propriété
      */
-    public ConversationDto getConversationByProperty(Long propertyId, UserEntity user) {
-        ListingEntity property = listingRepository.findById(propertyId);
+    public ConversationDto getConversationByProperty(String propertyId, UserEntity user) {
+        ListingEntity property = listingRepository.findById(UUID.fromString(propertyId));
         if (property == null) {
             throw new RuntimeException("Propriété non trouvée");
         }

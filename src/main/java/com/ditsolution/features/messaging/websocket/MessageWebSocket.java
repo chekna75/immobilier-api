@@ -1,17 +1,20 @@
 package com.ditsolution.features.messaging.websocket;
 
-import com.ditsolution.features.auth.entity.UserEntity;
-import com.ditsolution.features.messaging.dto.MessageDto;
 import com.ditsolution.features.messaging.service.MessageService;
 import com.ditsolution.features.messaging.service.ConversationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.jwt.auth.principal.JWTParser;
+import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.UUID;
 
 import java.io.IOException;
 import java.util.Map;
@@ -32,18 +35,20 @@ public class MessageWebSocket {
     @Inject
     ObjectMapper objectMapper;
     
+    @Inject
+    JWTParser jwtParser;
+    
     // Map pour stocker les sessions WebSocket par utilisateur
-    private static final Map<Long, Session> userSessions = new ConcurrentHashMap<>();
+    private static final Map<UUID, Session> userSessions = new ConcurrentHashMap<>();
     
     // Map pour stocker les sessions par ID de session
-    private static final Map<String, Long> sessionUsers = new ConcurrentHashMap<>();
+    private static final Map<String, UUID> sessionUsers = new ConcurrentHashMap<>();
     
     @OnOpen
     public void onOpen(Session session, @PathParam("token") String token) {
         try {
-            // TODO: Valider le token et récupérer l'utilisateur
-            // Pour l'instant, on simule avec un ID utilisateur
-            Long userId = extractUserIdFromToken(token);
+            // Valider le token JWT et récupérer l'utilisateur
+            UUID userId = extractUserIdFromToken(token);
             
             if (userId != null) {
                 userSessions.put(userId, session);
@@ -69,7 +74,7 @@ public class MessageWebSocket {
     
     @OnClose
     public void onClose(Session session) {
-        Long userId = sessionUsers.remove(session.getId());
+        UUID userId = sessionUsers.remove(session.getId());
         if (userId != null) {
             userSessions.remove(userId);
             logger.info("WebSocket fermé pour l'utilisateur: {}", userId);
@@ -78,7 +83,7 @@ public class MessageWebSocket {
     
     @OnError
     public void onError(Session session, Throwable throwable) {
-        Long userId = sessionUsers.get(session.getId());
+        UUID userId = sessionUsers.get(session.getId());
         logger.error("Erreur WebSocket pour l'utilisateur: {}", userId, throwable);
         
         // Nettoyer la session en cas d'erreur
@@ -91,7 +96,7 @@ public class MessageWebSocket {
     @OnMessage
     public void onMessage(String message, Session session) {
         try {
-            Long userId = sessionUsers.get(session.getId());
+            UUID userId = sessionUsers.get(session.getId());
             if (userId == null) {
                 logger.warn("Session non authentifiée");
                 return;
@@ -118,7 +123,7 @@ public class MessageWebSocket {
     /**
      * Envoie un message à un utilisateur spécifique
      */
-    public static void sendMessageToUser(Long userId, Object message) {
+    public static void sendMessageToUser(UUID userId, Object message) {
         Session session = userSessions.get(userId);
         if (session != null && session.isOpen()) {
             sendMessage(session, message);
@@ -128,7 +133,7 @@ public class MessageWebSocket {
     /**
      * Envoie un message à tous les utilisateurs d'une conversation
      */
-    public static void sendMessageToConversation(Long conversationId, Object message, Long excludeUserId) {
+    public static void sendMessageToConversation(Long conversationId, Object message, UUID excludeUserId) {
         // TODO: Implémenter la logique pour envoyer à tous les participants d'une conversation
         // Pour l'instant, on envoie à tous les utilisateurs connectés
         userSessions.forEach((userId, session) -> {
@@ -156,7 +161,7 @@ public class MessageWebSocket {
     /**
      * Gère les messages de frappe
      */
-    private void handleTypingMessage(WebSocketMessage wsMessage, Long userId) {
+    private void handleTypingMessage(WebSocketMessage wsMessage, UUID userId) {
         try {
             Long conversationId = Long.valueOf(wsMessage.getData().get("conversationId").toString());
             Boolean isTyping = Boolean.valueOf(wsMessage.getData().get("isTyping").toString());
@@ -186,14 +191,22 @@ public class MessageWebSocket {
     }
     
     /**
-     * Extrait l'ID utilisateur du token (simulation)
+     * Extrait l'ID utilisateur du token JWT
      */
-    private Long extractUserIdFromToken(String token) {
-        // TODO: Implémenter la validation JWT réelle
-        // Pour l'instant, on simule avec un ID fixe
+    private UUID extractUserIdFromToken(String token) {
         try {
-            return Long.valueOf(token.hashCode() % 1000); // Simulation
-        } catch (Exception e) {
+            // Parser le token JWT
+            JsonWebToken jwt = jwtParser.parse(token);
+            
+            // Extraire l'ID utilisateur du token
+            String userIdString = jwt.getSubject();
+            if (userIdString != null) {
+                return UUID.fromString(userIdString);
+            }
+            
+            return null;
+        } catch (ParseException | IllegalArgumentException e) {
+            logger.error("Erreur lors de l'extraction de l'ID utilisateur du token", e);
             return null;
         }
     }

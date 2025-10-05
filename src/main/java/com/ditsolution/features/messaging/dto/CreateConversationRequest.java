@@ -5,24 +5,24 @@ import jakarta.validation.constraints.NotNull;
 public class CreateConversationRequest {
     
     @NotNull(message = "L'ID de la propriété est requis")
-    private Long propertyId;
+    private String propertyId;
     
     private String initialMessage;
     
     // Constructeurs
     public CreateConversationRequest() {}
     
-    public CreateConversationRequest(Long propertyId, String initialMessage) {
+    public CreateConversationRequest(String propertyId, String initialMessage) {
         this.propertyId = propertyId;
         this.initialMessage = initialMessage;
     }
     
     // Getters et Setters
-    public Long getPropertyId() {
+    public String getPropertyId() {
         return propertyId;
     }
     
-    public void setPropertyId(Long propertyId) {
+    public void setPropertyId(String propertyId) {
         this.propertyId = propertyId;
     }
     

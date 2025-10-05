@@ -18,6 +18,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Path("/conversations/{conversationId}/messages")
 @Produces(MediaType.APPLICATION_JSON)
@@ -36,12 +37,13 @@ public class MessageResource {
      */
     @POST
     @Operation(summary = "Envoyer un message", description = "Envoie un nouveau message dans une conversation")
-    @RolesAllowed({"USER", "OWNER", "ADMIN"})
+    @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
     public Response sendMessage(
             @PathParam("conversationId") Long conversationId,
             @Valid SendMessageRequest request) {
         try {
-            UserEntity currentUser = (UserEntity) securityContext.getUserPrincipal();
+            String userId = securityContext.getUserPrincipal().getName();
+            UserEntity currentUser = UserEntity.findById(UUID.fromString(userId));
             MessageDto message = messageService.sendMessage(conversationId, request, currentUser);
             return Response.ok(message).build();
         } catch (Exception e) {
@@ -56,13 +58,14 @@ public class MessageResource {
      */
     @GET
     @Operation(summary = "Récupérer les messages", description = "Récupère les messages d'une conversation avec pagination")
-    @RolesAllowed({"USER", "OWNER", "ADMIN"})
+    @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
     public Response getMessages(
             @PathParam("conversationId") Long conversationId,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("50") int size) {
         try {
-            UserEntity currentUser = (UserEntity) securityContext.getUserPrincipal();
+            String userId = securityContext.getUserPrincipal().getName();
+            UserEntity currentUser = UserEntity.findById(UUID.fromString(userId));
             PagedResponse<MessageDto> messages = messageService.getMessages(conversationId, currentUser, page, size);
             return Response.ok(messages).build();
         } catch (Exception e) {
@@ -78,12 +81,13 @@ public class MessageResource {
     @GET
     @Path("/recent")
     @Operation(summary = "Messages récents", description = "Récupère les messages récents d'une conversation")
-    @RolesAllowed({"USER", "OWNER", "ADMIN"})
+    @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
     public Response getRecentMessages(
             @PathParam("conversationId") Long conversationId,
             @QueryParam("limit") @DefaultValue("20") int limit) {
         try {
-            UserEntity currentUser = (UserEntity) securityContext.getUserPrincipal();
+            String userId = securityContext.getUserPrincipal().getName();
+            UserEntity currentUser = UserEntity.findById(UUID.fromString(userId));
             List<MessageDto> messages = messageService.getRecentMessages(conversationId, currentUser, limit);
             return Response.ok(messages).build();
         } catch (Exception e) {
@@ -99,10 +103,11 @@ public class MessageResource {
     @PUT
     @Path("/read")
     @Operation(summary = "Marquer comme lu", description = "Marque tous les messages d'une conversation comme lus")
-    @RolesAllowed({"USER", "OWNER", "ADMIN"})
+    @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
     public Response markAsRead(@PathParam("conversationId") Long conversationId) {
         try {
-            UserEntity currentUser = (UserEntity) securityContext.getUserPrincipal();
+            String userId = securityContext.getUserPrincipal().getName();
+            UserEntity currentUser = UserEntity.findById(UUID.fromString(userId));
             messageService.markMessagesAsRead(conversationId, currentUser);
             return Response.ok().build();
         } catch (Exception e) {
@@ -118,10 +123,11 @@ public class MessageResource {
     @GET
     @Path("/unread-count")
     @Operation(summary = "Nombre de messages non lus", description = "Récupère le nombre de messages non lus dans une conversation")
-    @RolesAllowed({"USER", "OWNER", "ADMIN"})
+    @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
     public Response getUnreadCount(@PathParam("conversationId") Long conversationId) {
         try {
-            UserEntity currentUser = (UserEntity) securityContext.getUserPrincipal();
+            String userId = securityContext.getUserPrincipal().getName();
+            UserEntity currentUser = UserEntity.findById(UUID.fromString(userId));
             Long unreadCount = messageService.getUnreadCountInConversation(conversationId, currentUser);
             return Response.ok("{\"unreadCount\": " + unreadCount + "}").build();
         } catch (Exception e) {
@@ -137,10 +143,11 @@ public class MessageResource {
     @GET
     @Path("/unread")
     @Operation(summary = "Messages non lus", description = "Récupère tous les messages non lus de l'utilisateur")
-    @RolesAllowed({"USER", "OWNER", "ADMIN"})
+    @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
     public Response getUnreadMessages() {
         try {
-            UserEntity currentUser = (UserEntity) securityContext.getUserPrincipal();
+            String userId = securityContext.getUserPrincipal().getName();
+            UserEntity currentUser = UserEntity.findById(UUID.fromString(userId));
             List<MessageDto> messages = messageService.getUnreadMessages(currentUser);
             return Response.ok(messages).build();
         } catch (Exception e) {
@@ -156,10 +163,11 @@ public class MessageResource {
     @GET
     @Path("/total-unread-count")
     @Operation(summary = "Nombre total de messages non lus", description = "Récupère le nombre total de messages non lus de l'utilisateur")
-    @RolesAllowed({"USER", "OWNER", "ADMIN"})
+    @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
     public Response getTotalUnreadCount() {
         try {
-            UserEntity currentUser = (UserEntity) securityContext.getUserPrincipal();
+            String userId = securityContext.getUserPrincipal().getName();
+            UserEntity currentUser = UserEntity.findById(UUID.fromString(userId));
             Long unreadCount = messageService.getTotalUnreadCount(currentUser);
             return Response.ok("{\"unreadCount\": " + unreadCount + "}").build();
         } catch (Exception e) {
@@ -175,12 +183,13 @@ public class MessageResource {
     @GET
     @Path("/since")
     @Operation(summary = "Messages depuis une date", description = "Récupère les messages d'une conversation après une date donnée")
-    @RolesAllowed({"USER", "OWNER", "ADMIN"})
+    @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
     public Response getMessagesSince(
             @PathParam("conversationId") Long conversationId,
             @QueryParam("since") String since) {
         try {
-            UserEntity currentUser = (UserEntity) securityContext.getUserPrincipal();
+            String userId = securityContext.getUserPrincipal().getName();
+            UserEntity currentUser = UserEntity.findById(UUID.fromString(userId));
             LocalDateTime sinceDate = LocalDateTime.parse(since);
             List<MessageDto> messages = messageService.getMessagesAfterDate(conversationId, currentUser, sinceDate);
             return Response.ok(messages).build();
