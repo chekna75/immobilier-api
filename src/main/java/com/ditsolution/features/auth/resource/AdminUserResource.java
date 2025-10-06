@@ -32,6 +32,32 @@ public class AdminUserResource {
     @Context
     HttpRequest request;
 
+    @GET
+    @Path("/{id}")
+    public Response getUserById(@PathParam("id") String id) {
+        UUID userId = parseUuidOrBadRequest(id);
+        UserEntity user = UserEntity.findById(userId);
+        if (user == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        
+        // Créer un DTO pour la réponse
+        UserDetailDto userDetail = new UserDetailDto(
+            user.getId(),
+            user.getEmail(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getRole().toString(),
+            user.getStatus().toString(),
+            user.getCreatedAt(),
+            user.getUpdatedAt(),
+            user.getPhoneE164(),
+            user.getAvatarUrl()
+        );
+        
+        return Response.ok(userDetail).build();
+    }
+
     @PATCH
     @Path("/{id}/suspend")
     @Transactional
@@ -275,5 +301,19 @@ public class AdminUserResource {
     ) {}
 
     public record RoleChangeRequestsResponse(List<RoleChangeRequestDto> requests, int total) {}
+
+    // DTO pour les détails d'un utilisateur
+    public record UserDetailDto(
+        UUID id,
+        String email,
+        String firstName,
+        String lastName,
+        String role,
+        String status,
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt,
+        String phoneE164,
+        String avatarUrl
+    ) {}
 
 }
