@@ -2,70 +2,66 @@ package com.ditsolution.features.admin.service;
 
 import com.ditsolution.features.admin.dto.AdminDashboardDto;
 import com.ditsolution.features.auth.entity.UserEntity;
-import com.ditsolution.features.listing.enums.ListingStatus;
 import com.ditsolution.features.storage.entity.UploadedImageEntity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.time.OffsetDateTime;
 
 @ApplicationScoped
 public class AdminDashboardService {
 
-    @PersistenceContext
-    EntityManager em;
+    @Inject
+    EntityManager entityManager;
 
-    public AdminDashboardDto getDashboardStats() {
-        // Statistiques utilisateurs
-        long activeUsers = UserEntity.count("status = ?1", UserEntity.Status.ACTIVE);
+    @Transactional
+    public AdminDashboardDto getDashboardData() {
+        // KPIs utilisateurs
         long totalUsers = UserEntity.count();
-
-        // Statistiques annonces
-        long publishedListings = em.createQuery("SELECT COUNT(l) FROM ListingEntity l WHERE l.status = :status", Long.class)
-            .setParameter("status", ListingStatus.PUBLISHED).getSingleResult();
-        long draftListings = em.createQuery("SELECT COUNT(l) FROM ListingEntity l WHERE l.status = :status", Long.class)
-            .setParameter("status", ListingStatus.DRAFT).getSingleResult();
-        long removedListings = em.createQuery("SELECT COUNT(l) FROM ListingEntity l WHERE l.status = :status", Long.class)
-            .setParameter("status", ListingStatus.REMOVED).getSingleResult();
-        long totalListings = em.createQuery("SELECT COUNT(l) FROM ListingEntity l", Long.class).getSingleResult();
-
-        // Statistiques stockage
+        long activeUsers = UserEntity.count("status", UserEntity.Status.ACTIVE);
+        long suspendedUsers = UserEntity.count("status", UserEntity.Status.SUSPENDED);
+        
+        // KPIs annonces
+        long totalListings = entityManager.createQuery("SELECT COUNT(l) FROM ListingEntity l", Long.class).getSingleResult();
+        long activeListings = entityManager.createQuery("SELECT COUNT(l) FROM ListingEntity l WHERE l.status = 'ACTIVE'", Long.class).getSingleResult();
+        long removedListings = entityManager.createQuery("SELECT COUNT(l) FROM ListingEntity l WHERE l.status = 'REMOVED'", Long.class).getSingleResult();
+        long reportedListings = 0; // TODO: Implémenter le système de signalement
+        
+        // KPIs stockage
         long totalImages = UploadedImageEntity.count();
-        long usedImages = UploadedImageEntity.count("isUsed = ?1", true);
-        long unusedImages = UploadedImageEntity.count("isUsed = ?1", false);
-
-        // Calcul du stockage total utilisé (en MB)
-        BigDecimal totalStorageUsed = calculateTotalStorageUsed();
-
+        BigDecimal storageUsedMB = getStorageUsedMB();
+        BigDecimal storageUsedGB = storageUsedMB.divide(new BigDecimal("1024"), 2, java.math.RoundingMode.HALF_UP);
+        
+        // Données récentes (7 derniers jours) - Utilisation de requêtes natives pour éviter les problèmes de types
+        long newUsersLast7Days = ((Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '7 days'").getSingleResult()).longValue();
+        long newListingsLast7Days = ((Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM listings WHERE created_at >= NOW() - INTERVAL '7 days'").getSingleResult()).longValue();
+        long newImagesLast7Days = ((Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM uploaded_images WHERE created_at >= NOW() - INTERVAL '7 days'").getSingleResult()).longValue();
+        
         return new AdminDashboardDto(
-            activeUsers,
             totalUsers,
-            publishedListings,
+            activeUsers,
+            suspendedUsers,
             totalListings,
-            draftListings,
+            activeListings,
             removedListings,
-            totalStorageUsed,
+            reportedListings,
             totalImages,
-            usedImages,
-            unusedImages
+            storageUsedMB,
+            storageUsedGB,
+            newUsersLast7Days,
+            newListingsLast7Days,
+            newImagesLast7Days
         );
     }
-
-    private BigDecimal calculateTotalStorageUsed() {
-        // Requête pour calculer la somme des tailles de fichiers
-        String query = "SELECT COALESCE(SUM(fileSize), 0) FROM UploadedImageEntity";
-        Long totalBytes = em.createQuery(query, Long.class).getSingleResult();
-        
-        if (totalBytes == null || totalBytes == 0) {
-            return BigDecimal.ZERO;
-        }
-        
-        // Conversion en MB avec 2 décimales
-        BigDecimal totalMB = new BigDecimal(totalBytes)
-            .divide(new BigDecimal(1024 * 1024), 2, RoundingMode.HALF_UP);
-        
-        return totalMB;
+    
+    private BigDecimal getStorageUsedMB() {
+        // Calculer la taille totale des images stockées
+        String query = "SELECT COALESCE(SUM(file_size), 0) FROM uploaded_images";
+        Object result = entityManager.createNativeQuery(query).getSingleResult();
+        BigDecimal totalBytes = (BigDecimal) result;
+        return totalBytes.divide(new BigDecimal("1024").multiply(new BigDecimal("1024")), 2, java.math.RoundingMode.HALF_UP);
     }
 }

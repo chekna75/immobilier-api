@@ -80,6 +80,22 @@ public class TokenService {
 
     return newRt;
 }
+
+    public String generateImpersonationToken(UserEntity targetUser) {
+        Set<String> groups = Set.of(targetUser.role.name());
+        return Jwt.subject(targetUser.id.toString())
+                .issuer("immobilier-ci")
+                .audience(Set.of("web", "mobile"))
+                .issuedAt(Instant.now())
+                .expiresIn(60 * 60)  // 1 heure pour l'impersonation
+                .groups(groups)
+                .claim("email", targetUser.email)
+                .claim("status", targetUser.status.name())
+                .claim("phone_verified", targetUser.phoneVerified)
+                .claim("email_verified", targetUser.emailVerified)
+                .claim("impersonated", true)  // Marquer comme impersonation
+                .sign();
+    }
 }
 
 
