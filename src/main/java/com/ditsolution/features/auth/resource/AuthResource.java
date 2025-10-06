@@ -228,8 +228,26 @@ public class AuthResource {
 
     // Helper method to get current user
     private UserEntity currentUser() {
-        String email = identity.getPrincipal().getName();
-        return UserEntity.find("email", email).firstResult();
+        String principalName = identity.getPrincipal().getName();
+        
+        // Try to find by email first
+        UserEntity user = UserEntity.find("email", principalName).firstResult();
+        if (user != null) {
+            return user;
+        }
+        
+        // If not found by email, try by ID
+        try {
+            UUID userId = UUID.fromString(principalName);
+            user = UserEntity.findById(userId);
+            if (user != null) {
+                return user;
+            }
+        } catch (IllegalArgumentException e) {
+            // Principal name is not a valid UUID
+        }
+        
+        return null;
     }
 
     @POST

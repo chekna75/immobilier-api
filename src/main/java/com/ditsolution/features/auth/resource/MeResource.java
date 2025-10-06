@@ -149,6 +149,44 @@ public class MeResource {
         
         return Response.ok(AuthMappers.toDto(user)).build();
     }
+
+    // PUT /me/role : changement de rôle direct
+    @PUT
+    @Path("/role")
+    @Transactional
+    public Response changeRole(RoleChangeRequest req) {
+        var user = currentUser();
+        if (user == null) return unauthorized();
+        
+        if (req == null || req.role() == null || req.role().isBlank()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorDto("INVALID_REQUEST", "Le rôle est obligatoire"))
+                .build();
+        }
+        
+        try {
+            // Vérifier que le rôle est valide
+            UserEntity.Role newRole = UserEntity.Role.valueOf(req.role().toUpperCase());
+            
+            // Changer le rôle
+            user.setRole(newRole);
+            
+            // Révoquer tous les refresh tokens pour forcer une reconnexion
+            RefreshTokenEntity.stream("user = ?1 and revokedAt is null", user)
+                .map(RefreshTokenEntity.class::cast)
+                .forEach(rt -> tokenService.revokeRefresh(rt));
+            
+            return Response.ok(AuthMappers.toDto(user)).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(new ErrorDto("INVALID_ROLE", "Rôle invalide: " + req.role()))
+                .build();
+        }
+    }
+    
+    // DTO pour le changement de rôle
+    public record RoleChangeRequest(String role) {}
+    
       private UserEntity currentUser() {
         var p = identity==null ? null : identity.getPrincipal();
         if (p == null) return null;
