@@ -24,7 +24,9 @@ public class FavoriteService {
      * Récupère tous les favoris d'un utilisateur
      */
     public List<FavoriteDto> getUserFavorites(UUID userId) {
-        List<FavoriteEntity> favorites = FavoriteEntity.find("user.id", userId)
+        List<FavoriteEntity> favorites = FavoriteEntity.find(
+                "SELECT f FROM FavoriteEntity f JOIN FETCH f.user JOIN FETCH f.listing LEFT JOIN FETCH f.listing.photos WHERE f.user.id = ?1", 
+                userId)
                 .list();
         
         return favorites.stream()
@@ -57,7 +59,13 @@ public class FavoriteService {
         favorite.setListing(listing);
         favorite.persist();
 
-        return mapToDto(favorite);
+        // Recharger avec les relations pour le mapping
+        FavoriteEntity savedFavorite = FavoriteEntity.find(
+                "SELECT f FROM FavoriteEntity f JOIN FETCH f.user JOIN FETCH f.listing LEFT JOIN FETCH f.listing.photos WHERE f.id = ?1", 
+                favorite.id)
+                .firstResult();
+
+        return mapToDto(savedFavorite);
     }
 
     /**
@@ -86,14 +94,23 @@ public class FavoriteService {
      */
     @Transactional
     public boolean toggleFavorite(UUID userId, UUID listingId) {
-        boolean isCurrentlyFavorite = isFavorite(userId, listingId);
-        
-        if (isCurrentlyFavorite) {
-            removeFavorite(userId, listingId);
-            return false;
-        } else {
-            addFavorite(userId, listingId);
-            return true;
+        try {
+            boolean isCurrentlyFavorite = isFavorite(userId, listingId);
+            
+            if (isCurrentlyFavorite) {
+                removeFavorite(userId, listingId);
+                return false;
+            } else {
+                // Version simplifiée pour le debug
+                FavoriteEntity favorite = new FavoriteEntity();
+                favorite.setUser(UserEntity.findById(userId));
+                favorite.setListing(listingRepository.findById(listingId));
+                favorite.persist();
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Erreur lors du basculement des favoris: " + e.getMessage(), e);
         }
     }
 

@@ -184,4 +184,133 @@ public class MessageService {
             .map(messageMapper::toDto)
             .collect(Collectors.toList());
     }
+    
+    // ===== MÉTHODES D'ADMINISTRATION =====
+    
+    /**
+     * Récupère tous les messages d'une conversation pour les administrateurs
+     */
+    public PagedResponse<MessageDto> getMessagesForAdmin(Long conversationId, int page, int size) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        List<MessageEntity> allMessages = messageRepository
+            .findByConversationOrderByCreatedAtAsc(conversation);
+        
+        // Pagination manuelle
+        int start = page * size;
+        int end = Math.min(start + size, allMessages.size());
+        List<MessageEntity> pagedMessages = allMessages.subList(start, end);
+        
+        List<MessageDto> messageDtos = pagedMessages
+            .stream()
+            .map(messageMapper::toDto)
+            .collect(Collectors.toList());
+        
+        return new PagedResponse<MessageDto>(
+            messageDtos,
+            (long) allMessages.size(),
+            page,
+            size
+        );
+    }
+    
+    /**
+     * Récupère un message spécifique pour les administrateurs
+     */
+    public MessageDto getMessageForAdmin(Long conversationId, Long messageId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        MessageEntity message = messageRepository.findById(messageId);
+        if (message == null) {
+            throw new RuntimeException("Message non trouvé");
+        }
+        
+        // Vérifier que le message appartient à la conversation
+        if (!message.getConversation().getId().equals(conversationId)) {
+            throw new RuntimeException("Le message n'appartient pas à cette conversation");
+        }
+        
+        return messageMapper.toDto(message);
+    }
+    
+    /**
+     * Supprime un message pour les administrateurs
+     */
+    @Transactional
+    public void deleteMessageForAdmin(Long conversationId, Long messageId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        MessageEntity message = messageRepository.findById(messageId);
+        if (message == null) {
+            throw new RuntimeException("Message non trouvé");
+        }
+        
+        // Vérifier que le message appartient à la conversation
+        if (!message.getConversation().getId().equals(conversationId)) {
+            throw new RuntimeException("Le message n'appartient pas à cette conversation");
+        }
+        
+        messageRepository.delete(message);
+        
+        // Mettre à jour le dernier message de la conversation si nécessaire
+        List<MessageEntity> remainingMessages = messageRepository
+            .findByConversationOrderByCreatedAtAsc(conversation);
+        
+        if (remainingMessages.isEmpty()) {
+            conversation.setLastMessage(null);
+            conversation.setLastMessageTime(null);
+        } else {
+            MessageEntity lastMessage = remainingMessages.get(remainingMessages.size() - 1);
+            conversation.setLastMessage(lastMessage.getContent());
+            conversation.setLastMessageTime(lastMessage.getCreatedAt());
+        }
+        
+        conversationRepository.persist(conversation);
+    }
+    
+    /**
+     * Récupère les messages d'une conversation depuis une date donnée pour les administrateurs
+     */
+    public List<MessageDto> getMessagesSinceForAdmin(Long conversationId, LocalDateTime since) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        List<MessageEntity> messages = messageRepository
+            .findMessagesAfterDate(conversation, since);
+        
+        return messages.stream()
+            .map(messageMapper::toDto)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Récupère les statistiques des messages d'une conversation pour les administrateurs
+     */
+    public java.util.Map<String, Object> getMessageStatsForAdmin(Long conversationId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        long totalMessages = messageRepository.count("conversation = ?1", conversation);
+        long readMessages = messageRepository.count("conversation = ?1 AND isRead = true", conversation);
+        long unreadMessages = messageRepository.count("conversation = ?1 AND isRead = false", conversation);
+        
+        return java.util.Map.of(
+            "totalMessages", totalMessages,
+            "readMessages", readMessages,
+            "unreadMessages", unreadMessages
+        );
+    }
 }

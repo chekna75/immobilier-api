@@ -74,4 +74,23 @@ public class ConversationRepository implements PanacheRepository<ConversationEnt
                    "LOWER(property.title) LIKE LOWER(?2)) " +
                    "ORDER BY lastMessageTime DESC", user, "%" + searchTerm + "%").list();
     }
+    
+    // ===== MÉTHODES D'ADMINISTRATION =====
+    
+    /**
+     * Recherche toutes les conversations (pour les administrateurs)
+     */
+    public List<ConversationEntity> searchAllConversations(String searchTerm) {
+        return find("(LOWER(tenant.firstName || ' ' || tenant.lastName) LIKE LOWER(?1) OR " +
+                   "LOWER(owner.firstName || ' ' || owner.lastName) LIKE LOWER(?1) OR " +
+                   "LOWER(property.title) LIKE LOWER(?1)) " +
+                   "ORDER BY lastMessageTime DESC", "%" + searchTerm + "%").list();
+    }
+    
+    /**
+     * Trouve les conversations par statut d'archivage (pour les administrateurs)
+     */
+    public List<ConversationEntity> findByArchivedStatus(Boolean archived) {
+        return find("isArchived = ?1 ORDER BY lastMessageTime DESC", archived).list();
+    }
 }

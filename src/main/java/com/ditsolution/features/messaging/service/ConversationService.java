@@ -214,4 +214,123 @@ public class ConversationService {
             .map(conv -> conversationMapper.toDto(conv, user))
             .collect(Collectors.toList());
     }
+    
+    // ===== MÉTHODES D'ADMINISTRATION =====
+    
+    /**
+     * Récupère toutes les conversations pour les administrateurs
+     */
+    public PagedResponse<ConversationDto> getAllConversationsForAdmin(int page, int size, String searchTerm, Boolean archived) {
+        List<ConversationEntity> conversations;
+        
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            conversations = conversationRepository.searchAllConversations(searchTerm);
+        } else if (archived != null) {
+            conversations = conversationRepository.findByArchivedStatus(archived);
+        } else {
+            conversations = conversationRepository.findAll().list();
+        }
+        
+        // Pagination manuelle
+        int start = page * size;
+        int end = Math.min(start + size, conversations.size());
+        List<ConversationEntity> pagedConversations = conversations.subList(start, end);
+        
+        List<ConversationDto> conversationDtos = pagedConversations
+            .stream()
+            .map(conv -> conversationMapper.toDtoForAdmin(conv))
+            .collect(Collectors.toList());
+        
+        return new PagedResponse<ConversationDto>(
+            conversationDtos,
+            (long) conversations.size(),
+            page,
+            size
+        );
+    }
+    
+    /**
+     * Récupère une conversation pour les administrateurs
+     */
+    public ConversationDto getConversationForAdmin(Long conversationId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        return conversationMapper.toDtoForAdmin(conversation);
+    }
+    
+    /**
+     * Archive une conversation pour les administrateurs
+     */
+    @Transactional
+    public void archiveConversationForAdmin(Long conversationId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        conversation.setIsArchived(true);
+        conversationRepository.persist(conversation);
+    }
+    
+    /**
+     * Désarchive une conversation pour les administrateurs
+     */
+    @Transactional
+    public void unarchiveConversationForAdmin(Long conversationId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        conversation.setIsArchived(false);
+        conversationRepository.persist(conversation);
+    }
+    
+    /**
+     * Désactive une conversation pour les administrateurs
+     */
+    @Transactional
+    public void deactivateConversationForAdmin(Long conversationId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        conversation.setIsActive(false);
+        conversationRepository.persist(conversation);
+    }
+    
+    /**
+     * Active une conversation pour les administrateurs
+     */
+    @Transactional
+    public void activateConversationForAdmin(Long conversationId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId);
+        if (conversation == null) {
+            throw new RuntimeException("Conversation non trouvée");
+        }
+        
+        conversation.setIsActive(true);
+        conversationRepository.persist(conversation);
+    }
+    
+    /**
+     * Récupère les statistiques des conversations pour les administrateurs
+     */
+    public java.util.Map<String, Object> getConversationStatsForAdmin() {
+        long totalConversations = conversationRepository.count();
+        long activeConversations = conversationRepository.count("isActive = true");
+        long archivedConversations = conversationRepository.count("isArchived = true");
+        long inactiveConversations = conversationRepository.count("isActive = false");
+        
+        return java.util.Map.of(
+            "totalConversations", totalConversations,
+            "activeConversations", activeConversations,
+            "archivedConversations", archivedConversations,
+            "inactiveConversations", inactiveConversations
+        );
+    }
 }

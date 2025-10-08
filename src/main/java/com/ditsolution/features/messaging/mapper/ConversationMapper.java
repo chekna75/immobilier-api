@@ -60,4 +60,49 @@ public class ConversationMapper {
             otherUser.updatedAt
         );
     }
+    
+    /**
+     * Convertit une entité Conversation en DTO pour les administrateurs
+     */
+    public ConversationDto toDtoForAdmin(ConversationEntity conversation) {
+        ConversationDto dto = new ConversationDto();
+        
+        dto.setId(conversation.getId());
+        dto.setProperty(listingMapper.toDto(conversation.getProperty()));
+        dto.setOtherUser(getTenantDto(conversation));
+        dto.setLastMessage(conversation.getLastMessage());
+        dto.setLastMessageTime(conversation.getLastMessageTime());
+        dto.setUnreadCount(conversation.getTenantUnreadCount() + conversation.getOwnerUnreadCount());
+        dto.setIsOnline(false); // TODO: Implémenter la logique de statut en ligne
+        dto.setIsArchived(conversation.getIsArchived());
+        dto.setCreatedAt(conversation.getCreatedAt());
+        dto.setUpdatedAt(conversation.getUpdatedAt());
+        
+        return dto;
+    }
+    
+    /**
+     * Récupère les informations du locataire pour l'administration
+     */
+    private UserDto getTenantDto(ConversationEntity conversation) {
+        UserEntity tenant = conversation.getTenant();
+        if (tenant == null) {
+            return null;
+        }
+        
+        return new UserDto(
+            tenant.id,
+            tenant.role,
+            tenant.status,
+            tenant.email,
+            null, // Ne pas exposer le téléphone
+            false, // Ne pas exposer le statut de vérification
+            tenant.emailVerified,
+            tenant.firstName,
+            tenant.lastName,
+            null, // Ne pas exposer l'avatar
+            tenant.createdAt,
+            tenant.updatedAt
+        );
+    }
 }
