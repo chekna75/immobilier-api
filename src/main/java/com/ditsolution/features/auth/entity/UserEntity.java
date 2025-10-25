@@ -37,8 +37,10 @@ public class UserEntity extends PanacheEntityBase {
   public String email;
   @Column(name="phone_e164")
   public String phoneE164;
-  public boolean phoneVerified;
-  public boolean emailVerified;
+  @Column(name = "phoneVerified", nullable = false, columnDefinition = "boolean DEFAULT false")
+  public boolean phoneVerified = false;
+  @Column(name = "emailVerified", nullable = false, columnDefinition = "boolean DEFAULT false")
+  public boolean emailVerified = false;
 
   public String passwordHash;
   public String firstName;

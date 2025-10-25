@@ -4,6 +4,17 @@
 **/google-services.json
 app-immo-notifications-firebase-adminsdk-*.json
 
+# Stripe secrets
+**/stripe-*.json
+**/stripe-*.key
+**/stripe-*.pem
+
+# JWT keys
+**/privateKey.pem
+**/publicKey.pem
+**/jwt-*.key
+**/jwt-*.pem
+
 # Java
 *.class
 *.jar
