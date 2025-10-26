@@ -2,8 +2,6 @@ package com.ditsolution.features.messaging.mapper;
 
 import com.ditsolution.features.auth.dto.UserDto;
 import com.ditsolution.features.auth.entity.UserEntity;
-import com.ditsolution.features.listing.dto.ListingDto;
-import com.ditsolution.features.listing.entity.ListingEntity;
 import com.ditsolution.features.listing.mapper.ListingMapper;
 import com.ditsolution.features.messaging.dto.ConversationDto;
 import com.ditsolution.features.messaging.entity.ConversationEntity;
@@ -28,7 +26,7 @@ public class ConversationMapper {
         dto.setLastMessage(conversation.getLastMessage());
         dto.setLastMessageTime(conversation.getLastMessageTime());
         dto.setUnreadCount(conversation.getUnreadCountForUser(currentUser));
-        dto.setIsOnline(false); // TODO: Implémenter la logique de statut en ligne
+        dto.setIsOnline(false); // Système de présence non implémenté - tous les utilisateurs considérés hors ligne
         dto.setIsArchived(conversation.getIsArchived());
         dto.setCreatedAt(conversation.getCreatedAt());
         dto.setUpdatedAt(conversation.getUpdatedAt());
@@ -73,7 +71,7 @@ public class ConversationMapper {
         dto.setLastMessage(conversation.getLastMessage());
         dto.setLastMessageTime(conversation.getLastMessageTime());
         dto.setUnreadCount(conversation.getTenantUnreadCount() + conversation.getOwnerUnreadCount());
-        dto.setIsOnline(false); // TODO: Implémenter la logique de statut en ligne
+        dto.setIsOnline(false); // Système de présence non implémenté - tous les utilisateurs considérés hors ligne
         dto.setIsArchived(conversation.getIsArchived());
         dto.setCreatedAt(conversation.getCreatedAt());
         dto.setUpdatedAt(conversation.getUpdatedAt());

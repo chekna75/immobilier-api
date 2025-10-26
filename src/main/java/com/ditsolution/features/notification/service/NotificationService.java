@@ -6,6 +6,7 @@ import com.ditsolution.features.notification.dto.NotificationDto;
 import com.ditsolution.features.notification.dto.SendNotificationRequest;
 import com.ditsolution.features.notification.entity.DeviceTokenEntity;
 import com.ditsolution.features.notification.entity.NotificationEntity;
+import com.ditsolution.features.notification.entity.UserNotificationPreferencesEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.firebase.messaging.*;
@@ -35,6 +36,9 @@ public class NotificationService {
 
     @Inject
     ObjectMapper objectMapper;
+
+    @Inject
+    NotificationPreferencesService preferencesService;
 
     @ConfigProperty(name = "app.notification.batch-size", defaultValue = "500")
     int batchSize;
@@ -81,6 +85,12 @@ public class NotificationService {
         UserEntity user = entityManager.find(UserEntity.class, request.getUserId());
         if (user == null) {
             throw new IllegalArgumentException("Utilisateur non trouvé: " + request.getUserId());
+        }
+
+        // Vérifier les préférences utilisateur
+        if (!shouldSendNotification(request.getUserId(), request.getType())) {
+            Log.info("Notification non envoyée selon les préférences utilisateur: " + request.getUserId() + " type: " + request.getType());
+            return;
         }
 
         // Créer l'entité notification
@@ -332,6 +342,47 @@ public class NotificationService {
             .executeUpdate();
 
             Log.info("Tokens invalides désactivés: " + invalidTokens.size());
+        }
+    }
+
+    /**
+     * Vérifie si une notification doit être envoyée selon les préférences utilisateur
+     */
+    private boolean shouldSendNotification(UUID userId, NotificationEntity.NotificationType type) {
+        try {
+            // Récupérer les préférences utilisateur
+            UserNotificationPreferencesEntity preferences = entityManager.createQuery(
+                "SELECT p FROM UserNotificationPreferencesEntity p WHERE p.user.id = :userId",
+                UserNotificationPreferencesEntity.class
+            )
+            .setParameter("userId", userId)
+            .getResultStream()
+            .findFirst()
+            .orElse(null);
+
+            // Si pas de préférences, envoyer par défaut
+            if (preferences == null) {
+                return true;
+            }
+
+            // Vérifier les heures silencieuses
+            if (preferences.isWithinQuietHours()) {
+                Log.info("Notification bloquée - heures silencieuses pour l'utilisateur: " + userId);
+                return false;
+            }
+
+            // Vérifier si les notifications push sont activées
+            if (!preferences.getPushEnabled()) {
+                Log.info("Notifications push désactivées pour l'utilisateur: " + userId);
+                return false;
+            }
+
+            // Vérifier le type de notification spécifique
+            return preferences.isNotificationEnabled(type);
+        } catch (Exception e) {
+            Log.error("Erreur lors de la vérification des préférences: " + e.getMessage(), e);
+            // En cas d'erreur, envoyer par défaut
+            return true;
         }
     }
 }

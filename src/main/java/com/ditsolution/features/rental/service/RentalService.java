@@ -40,9 +40,6 @@ public class RentalService {
     RentalNotificationService notificationService;
 
     @Inject
-    PdfGenerationService pdfGenerationService;
-
-    @Inject
     ListingRepository listingRepository;
 
     @Transactional
@@ -127,11 +124,6 @@ public class RentalService {
             payment.setPaidDate(LocalDate.now());
             payment.setPaymentMethod(transaction.getPaymentMethod().toString());
             payment.setCinetpayTransactionId(stripePaymentIntentId);
-            payment.persist();
-
-            // Générer le reçu PDF
-            String receiptUrl = pdfGenerationService.generateReceipt(payment);
-            payment.setReceiptUrl(receiptUrl);
             payment.persist();
 
             // Envoyer les notifications

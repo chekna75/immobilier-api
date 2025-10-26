@@ -1,10 +1,8 @@
 package com.ditsolution.features.auth.service;
 
 import com.ditsolution.features.auth.entity.AdminLogEntity;
-import io.quarkus.hibernate.orm.panache.Panache;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.UUID;

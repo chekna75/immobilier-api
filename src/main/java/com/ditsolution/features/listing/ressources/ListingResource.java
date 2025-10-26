@@ -82,13 +82,61 @@ public class ListingResource {
         catch (IllegalArgumentException ignored) { /* type inconnu => pas de filtre */ }
       }
   
-      var filters = new FiltersDto(city, district, listingType, minPrice, maxPrice);
+      var filters = new FiltersDto(city, district, listingType, minPrice, maxPrice, null, null, null, false);
       var pageReq = new PageRequestDto(page, size);
   
       var result = listingService.listListings(filters, pageReq); // <- ta signature
   
       var items = result.items().stream().map(mapper::toDto).toList();
       return Response.ok(new PagedResponse<>(items, result.total(), page, size)).build();
+    }
+
+    // ---------------------------
+    // 2.1. SEARCH BY PROXIMITY (recherche par proximité)
+    // ---------------------------
+    @GET
+    @Path("/search/proximity")
+    public Response searchByProximity(
+        @QueryParam("latitude") BigDecimal latitude,
+        @QueryParam("longitude") BigDecimal longitude,
+        @QueryParam("radius") @DefaultValue("10") Double radiusKm,
+        @QueryParam("type") String type,
+        @QueryParam("minPrice") BigDecimal minPrice,
+        @QueryParam("maxPrice") BigDecimal maxPrice,
+        @QueryParam("page") @DefaultValue("0") int page,
+        @QueryParam("size") @DefaultValue("10") int size
+    ) {
+        // Validation des paramètres obligatoires
+        if (latitude == null || longitude == null) {
+            return Response.status(400)
+                .entity(new ErrorDto("BAD_REQUEST", "Latitude et longitude sont obligatoires"))
+                .build();
+        }
+        
+        // Validation des coordonnées
+        try {
+            validateCoordinates(latitude, longitude);
+        } catch (IllegalArgumentException e) {
+            return Response.status(400)
+                .entity(new ErrorDto("BAD_REQUEST", e.getMessage()))
+                .build();
+        }
+        
+        // Parse du type
+        ListingType listingType = null;
+        if (type != null && !type.isBlank()) {
+            try { 
+                listingType = ListingType.valueOf(type.trim().toUpperCase()); 
+            } catch (IllegalArgumentException ignored) { 
+                /* type inconnu => pas de filtre */ 
+            }
+        }
+        
+        // Utiliser la méthode searchByDistance du repository
+        var results = listingService.searchByProximity(latitude, longitude, radiusKm, listingType, minPrice, maxPrice, page, size);
+        var items = results.items().stream().map(mapper::toDto).toList();
+        
+        return Response.ok(new PagedResponse<>(items, results.total(), page, size)).build();
     }
 
     // ---------------------------
@@ -183,6 +231,23 @@ public class ListingResource {
             System.out.println("Error parsing user ID from token: " + e.getMessage());
             e.printStackTrace();
             return null;
+        }
+    }
+    
+    /**
+     * Validation des coordonnées géographiques
+     */
+    private void validateCoordinates(BigDecimal latitude, BigDecimal longitude) {
+        if (latitude == null || longitude == null) {
+            throw new IllegalArgumentException("Coordonnées obligatoires");
+        }
+        if (latitude.compareTo(BigDecimal.valueOf(-90)) < 0 || 
+            latitude.compareTo(BigDecimal.valueOf(90)) > 0) {
+            throw new IllegalArgumentException("Latitude invalide (-90 à 90)");
+        }
+        if (longitude.compareTo(BigDecimal.valueOf(-180)) < 0 || 
+            longitude.compareTo(BigDecimal.valueOf(180)) > 0) {
+            throw new IllegalArgumentException("Longitude invalide (-180 à 180)");
         }
     }
     

@@ -9,7 +9,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 
 @ApplicationScoped
 public class AdminDashboardService {
@@ -28,7 +27,7 @@ public class AdminDashboardService {
         long totalListings = entityManager.createQuery("SELECT COUNT(l) FROM ListingEntity l", Long.class).getSingleResult();
         long activeListings = entityManager.createQuery("SELECT COUNT(l) FROM ListingEntity l WHERE l.status = 'ACTIVE'", Long.class).getSingleResult();
         long removedListings = entityManager.createQuery("SELECT COUNT(l) FROM ListingEntity l WHERE l.status = 'REMOVED'", Long.class).getSingleResult();
-        long reportedListings = 0; // TODO: Implémenter le système de signalement
+        long reportedListings = ((Number) entityManager.createNativeQuery("SELECT COUNT(DISTINCT r.target_id) FROM reviews r WHERE r.target_type = 'property' AND r.report_count > 0").getSingleResult()).longValue();
         
         // KPIs stockage
         long totalImages = UploadedImageEntity.count();

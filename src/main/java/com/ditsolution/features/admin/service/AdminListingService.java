@@ -4,7 +4,6 @@ import com.ditsolution.features.admin.dto.AdminListingDto;
 import com.ditsolution.features.admin.dto.AdminListingFilterDto;
 import com.ditsolution.features.admin.dto.AdminListingUpdateDto;
 import com.ditsolution.features.auth.entity.AdminLogEntity;
-import com.ditsolution.features.auth.entity.UserEntity;
 import com.ditsolution.features.listing.entity.ListingEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -132,7 +131,7 @@ public class AdminListingService {
             listing.getPrice(),
             listing.getType() != null ? listing.getType().name() : null,
             listing.getStatus() != null ? listing.getStatus().name() : null,
-            false, // TODO: Implémenter le système premium
+            false, // Système premium non implémenté - toutes les annonces sont gratuites
             listing.getCreatedAt() != null ? listing.getCreatedAt().atOffset(java.time.ZoneOffset.UTC) : null,
             listing.getUpdatedAt() != null ? listing.getUpdatedAt().atOffset(java.time.ZoneOffset.UTC) : null,
             listing.getOwner().getId(),

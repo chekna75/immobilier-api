@@ -10,7 +10,7 @@ BEGIN
 END$$;
 
 -- Table des annonces
-CREATE TABLE listings (
+CREATE TABLE IF NOT EXISTS listings (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id     UUID NOT NULL REFERENCES users(id),
   status       listing_status NOT NULL DEFAULT 'ACTIVE',
@@ -24,8 +24,8 @@ CREATE TABLE listings (
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Table des photos d’annonces (max 5 par annonce : contrainte dans l’application)
-CREATE TABLE listing_photos (
+-- Table des photos d'annonces (max 5 par annonce : contrainte dans l'application)
+CREATE TABLE IF NOT EXISTS listing_photos (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
   url        TEXT NOT NULL,
@@ -33,5 +33,5 @@ CREATE TABLE listing_photos (
 );
 
 -- Index pour les filtrages fréquents
-CREATE INDEX idx_listings_city ON listings (LOWER(city));
-CREATE INDEX idx_listings_type ON listings (type);
+CREATE INDEX IF NOT EXISTS idx_listings_city ON listings (LOWER(city));
+CREATE INDEX IF NOT EXISTS idx_listings_type ON listings (type);

@@ -49,5 +49,20 @@ public class EmailService {
             "L'équipe D IT Solution 🚀"
         ));
     }
+
+    public void sendPasswordResetEmail(String to, String firstName, String resetToken) {
+        String resetUrl = "https://app.example.com/reset-password?token=" + resetToken;
+        mailer.send(Mail.withText(
+            to,
+            "Réinitialisation de votre mot de passe 🔐",
+            "Bonjour " + firstName + ",\n\n" +
+            "Vous avez demandé la réinitialisation de votre mot de passe.\n" +
+            "Cliquez sur le lien suivant pour créer un nouveau mot de passe :\n\n" +
+            resetUrl + "\n\n" +
+            "Ce lien est valide pendant 1 heure.\n" +
+            "Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.\n\n" +
+            "L'équipe D IT Solution 🚀"
+        ));
+    }
     
 }

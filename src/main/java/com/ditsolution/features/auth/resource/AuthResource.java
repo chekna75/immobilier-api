@@ -348,8 +348,8 @@ public class AuthResource {
         resetCode.createdAt = now;
         resetCode.persist();
 
-        // TODO: Envoyer l'email avec le lien de réinitialisation
-        // emailService.sendPasswordResetEmail(user.email, user.firstName, resetToken);
+        // Envoyer l'email avec le lien de réinitialisation
+        emailService.sendPasswordResetEmail(user.email, user.firstName, resetToken);
 
         return Response.status(Response.Status.NO_CONTENT).build();
     }

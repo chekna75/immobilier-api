@@ -1,5 +1,5 @@
 -- Table pour stocker les informations sur les images uploadées
-CREATE TABLE uploaded_images (
+CREATE TABLE IF NOT EXISTS uploaded_images (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     file_name VARCHAR(255) NOT NULL,
@@ -14,10 +14,10 @@ CREATE TABLE uploaded_images (
 );
 
 -- Index pour améliorer les performances
-CREATE INDEX idx_uploaded_images_user_id ON uploaded_images(user_id);
-CREATE INDEX idx_uploaded_images_file_name ON uploaded_images(file_name);
-CREATE INDEX idx_uploaded_images_is_used ON uploaded_images(is_used);
-CREATE INDEX idx_uploaded_images_created_at ON uploaded_images(created_at);
+CREATE INDEX IF NOT EXISTS idx_uploaded_images_user_id ON uploaded_images(user_id);
+CREATE INDEX IF NOT EXISTS idx_uploaded_images_file_name ON uploaded_images(file_name);
+CREATE INDEX IF NOT EXISTS idx_uploaded_images_is_used ON uploaded_images(is_used);
+CREATE INDEX IF NOT EXISTS idx_uploaded_images_created_at ON uploaded_images(created_at);
 
 -- Contrainte unique pour éviter les doublons
-CREATE UNIQUE INDEX idx_uploaded_images_user_file ON uploaded_images(user_id, file_name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_uploaded_images_user_file ON uploaded_images(user_id, file_name);

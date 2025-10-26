@@ -1,7 +1,6 @@
 package com.ditsolution.features.admin.resource;
 
 import com.ditsolution.features.admin.dto.AdminDashboardDto;
-import com.ditsolution.features.admin.dto.AdminUserDto;
 import com.ditsolution.features.admin.dto.AdminListingDto;
 import com.ditsolution.features.admin.service.AdminDashboardService;
 import com.ditsolution.features.admin.service.AdminUserService;
