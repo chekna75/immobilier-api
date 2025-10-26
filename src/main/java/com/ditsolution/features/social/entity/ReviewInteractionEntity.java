@@ -1,6 +1,6 @@
 package com.ditsolution.features.social.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -11,11 +11,16 @@ import java.util.UUID;
 @Entity
 @Table(name = "review_interactions",
        uniqueConstraints = @UniqueConstraint(columnNames = {"review_id", "user_id", "interaction_type"}))
-public class ReviewInteractionEntity extends PanacheEntity {
+public class ReviewInteractionEntity extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false)
+    public UUID id;
 
     @Column(name = "review_id", nullable = false)
     @NotNull
-    public Long reviewId;
+    public UUID reviewId;
 
     @Column(name = "user_id", nullable = false)
     @NotNull
@@ -56,12 +61,12 @@ public class ReviewInteractionEntity extends PanacheEntity {
     }
 
     // Méthodes statiques
-    public static ReviewInteractionEntity findByReviewAndUser(Long reviewId, UUID userId, InteractionType type) {
+    public static ReviewInteractionEntity findByReviewAndUser(UUID reviewId, UUID userId, InteractionType type) {
         return find("reviewId = ?1 AND userId = ?2 AND interactionType = ?3", 
                    reviewId, userId, type).firstResult();
     }
 
-    public static java.util.List<ReviewInteractionEntity> findByReview(Long reviewId) {
+    public static java.util.List<ReviewInteractionEntity> findByReview(UUID reviewId) {
         return find("reviewId = ?1 ORDER BY createdAt DESC", reviewId).list();
     }
 
@@ -69,11 +74,11 @@ public class ReviewInteractionEntity extends PanacheEntity {
         return find("userId = ?1 ORDER BY createdAt DESC", userId).list();
     }
 
-    public static long countByReviewAndType(Long reviewId, InteractionType type) {
+    public static long countByReviewAndType(UUID reviewId, InteractionType type) {
         return count("reviewId = ?1 AND interactionType = ?2", reviewId, type);
     }
 
-    public static boolean hasUserInteracted(Long reviewId, UUID userId, InteractionType type) {
+    public static boolean hasUserInteracted(UUID reviewId, UUID userId, InteractionType type) {
         return count("reviewId = ?1 AND userId = ?2 AND interactionType = ?3", 
                     reviewId, userId, type) > 0;
     }

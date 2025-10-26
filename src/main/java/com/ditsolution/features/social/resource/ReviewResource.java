@@ -78,7 +78,7 @@ public class ReviewResource {
     @Path("/{reviewId}/helpful")
     @Operation(summary = "Marquer comme utile", description = "Marquer ou retirer le marquage d'un avis comme utile")
     @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
-    public Response markAsHelpful(@PathParam("reviewId") Long reviewId) {
+    public Response markAsHelpful(@PathParam("reviewId") UUID reviewId) {
         try {
             UserEntity currentUser = getCurrentUser();
             boolean isHelpful = reviewService.markAsHelpful(reviewId, currentUser.getId());
@@ -98,7 +98,7 @@ public class ReviewResource {
     @Path("/{reviewId}/report")
     @Operation(summary = "Signaler un avis", description = "Signaler un avis inapproprié")
     @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
-    public Response reportReview(@PathParam("reviewId") Long reviewId) {
+    public Response reportReview(@PathParam("reviewId") UUID reviewId) {
         try {
             UserEntity currentUser = getCurrentUser();
             boolean reported = reviewService.reportReview(reviewId, currentUser.getId());

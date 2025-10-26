@@ -118,7 +118,7 @@ public class ReviewIntegrationService {
      * Marquer un avis comme utile depuis le frontend
      */
     @Transactional
-    public boolean markAsHelpfulFromFrontend(Long reviewId, UUID userId) {
+    public boolean markAsHelpfulFromFrontend(UUID reviewId, UUID userId) {
         try {
             return reviewService.markAsHelpful(reviewId, userId);
         } catch (Exception e) {
@@ -131,7 +131,7 @@ public class ReviewIntegrationService {
      * Signaler un avis depuis le frontend
      */
     @Transactional
-    public boolean reportReviewFromFrontend(Long reviewId, UUID userId) {
+    public boolean reportReviewFromFrontend(UUID reviewId, UUID userId) {
         try {
             return reviewService.reportReview(reviewId, userId);
         } catch (Exception e) {

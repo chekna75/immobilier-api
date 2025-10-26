@@ -104,7 +104,7 @@ public class ReviewIntegrationResource {
     @Path("/{reviewId}/helpful")
     @Operation(summary = "Marquer comme utile", description = "Marquer un avis comme utile depuis le frontend")
     @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
-    public Response markAsHelpful(@PathParam("reviewId") Long reviewId) {
+    public Response markAsHelpful(@PathParam("reviewId") UUID reviewId) {
         try {
             UserEntity currentUser = getCurrentUser();
             if (currentUser == null) {
@@ -130,7 +130,7 @@ public class ReviewIntegrationResource {
     @Path("/{reviewId}/report")
     @Operation(summary = "Signaler un avis", description = "Signaler un avis depuis le frontend")
     @RolesAllowed({"TENANT", "OWNER", "ADMIN"})
-    public Response reportReview(@PathParam("reviewId") Long reviewId) {
+    public Response reportReview(@PathParam("reviewId") UUID reviewId) {
         try {
             UserEntity currentUser = getCurrentUser();
             if (currentUser == null) {

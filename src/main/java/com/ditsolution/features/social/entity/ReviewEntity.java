@@ -1,6 +1,6 @@
 package com.ditsolution.features.social.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,7 +13,12 @@ import java.util.UUID;
 @Entity
 @Table(name = "reviews", 
        uniqueConstraints = @UniqueConstraint(columnNames = {"target_id", "target_type", "reviewer_id"}))
-public class ReviewEntity extends PanacheEntity {
+public class ReviewEntity extends PanacheEntityBase {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false)
+    public UUID id;
 
     @Column(name = "target_id", nullable = false)
     @NotNull

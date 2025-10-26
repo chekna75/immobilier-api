@@ -94,7 +94,7 @@ public class ReviewService {
      * Marquer un avis comme utile
      */
     @Transactional
-    public boolean markAsHelpful(Long reviewId, UUID userId) {
+    public boolean markAsHelpful(UUID reviewId, UUID userId) {
         try {
             ReviewEntity review = ReviewEntity.findById(reviewId);
             if (review == null) {
@@ -133,7 +133,7 @@ public class ReviewService {
      * Signaler un avis
      */
     @Transactional
-    public boolean reportReview(Long reviewId, UUID userId) {
+    public boolean reportReview(UUID reviewId, UUID userId) {
         try {
             ReviewEntity review = ReviewEntity.findById(reviewId);
             if (review == null) {
@@ -232,7 +232,7 @@ public class ReviewService {
                 objectMapper.getTypeFactory().constructMapType(Map.class, String.class, BigDecimal.class));
 
             ReviewDto dto = new ReviewDto();
-            dto.id = UUID.fromString(review.id.toString());
+            dto.id = review.id;
             dto.targetId = review.targetId;
             dto.targetType = review.targetType.getValue();
             dto.reviewerId = review.reviewerId;
