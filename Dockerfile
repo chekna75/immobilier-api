@@ -9,21 +9,15 @@ WORKDIR /app
 # Copier les fichiers de configuration Maven
 COPY pom.xml .
 
-# Copier mvnw si disponible (sinon utiliser mvn directement)
-COPY .mvn .mvn 2>/dev/null || true
-COPY mvnw* . 2>/dev/null || true
-RUN if [ -f mvnw ]; then chmod +x mvnw; fi
-
-# Utiliser mvnw si disponible, sinon mvn
-RUN MVN_CMD=$(if [ -f mvnw ]; then echo "./mvnw"; else echo "mvn"; fi) && \
-    $MVN_CMD dependency:go-offline -B
+# Télécharger les dépendances (cache layer pour optimisation)
+# Utilise mvn directement (déjà présent dans l'image maven)
+RUN mvn dependency:go-offline -B
 
 # Copier le code source
 COPY src ./src
 
-# Build de l'application (sans tests) avec le profil production
-RUN MVN_CMD=$(if [ -f mvnw ]; then echo "./mvnw"; else echo "mvn"; fi) && \
-    $MVN_CMD clean package -DskipTests -Dquarkus.profile=prod
+# Build de l'application avec le profil production
+RUN mvn clean package -DskipTests -Dquarkus.profile=prod
 
 # Étape 2: Runtime
 FROM eclipse-temurin:21-jre-alpine
@@ -32,7 +26,7 @@ WORKDIR /app
 # Créer un utilisateur non-root pour la sécurité
 RUN addgroup -S quarkus && adduser -S quarkus -G quarkus
 
-# Copier le JAR de l'application
+# Copier le JAR de l'application depuis l'étape de build
 COPY --from=build --chown=quarkus:quarkus /app/target/quarkus-app/lib /app/lib
 COPY --from=build --chown=quarkus:quarkus /app/target/quarkus-app/*.jar /app
 COPY --from=build --chown=quarkus:quarkus /app/target/quarkus-app/app /app/app
@@ -41,9 +35,12 @@ COPY --from=build --chown=quarkus:quarkus /app/target/quarkus-app/quarkus /app/q
 # Passer à l'utilisateur non-root
 USER quarkus
 
-# Exposer le port
+# Exposer le port (Railway détecte automatiquement le port 8080)
 EXPOSE 8080
+
+# Variables d'environnement par défaut
+ENV QUARKUS_HTTP_HOST=0.0.0.0
+ENV QUARKUS_HTTP_PORT=8080
 
 # Commande de démarrage
 ENTRYPOINT ["java", "-jar", "/app/quarkus-run.jar"]
-
