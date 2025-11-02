@@ -193,6 +193,20 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>9.22.3</version>
+                <configuration>
+                    <!-- Utilise les variables d'environnement ou les propriétés Maven -->
+                    <url>${flyway.url:${env.FLYWAY_URL:jdbc:postgresql://localhost:5432/immobilier}}</url>
+                    <user>${flyway.user:${env.FLYWAY_USER:${env.DB_USERNAME:postgres}}}</user>
+                    <password>${flyway.password:${env.FLYWAY_PASSWORD:${env.DB_PASSWORD:postgres}}}</password>
+                    <locations>
+                        <location>classpath:db/migration</location>
+                    </locations>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
