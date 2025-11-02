@@ -97,12 +97,6 @@ pids
 .env.development.local
 .env.test.local
 .env.production.local
-.env.dev
-.env.prod
-
-# Configuration files with sensitive data
-**/application-dev.properties
-**/application-prod.properties
 
 # Temporary files
 *.tmp

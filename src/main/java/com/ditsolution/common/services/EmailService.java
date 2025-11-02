@@ -9,22 +9,22 @@ import io.quarkus.mailer.Mailer;
 @ApplicationScoped
 public class EmailService {
 
-    @ConfigProperty(name = "quarkus.mailer.host")
+    @ConfigProperty(name = "quarkus.mailer.host", defaultValue = "")
     String host;
 
-    @ConfigProperty(name = "quarkus.mailer.port")
+    @ConfigProperty(name = "quarkus.mailer.port", defaultValue = "587")
     int port;
 
-    @ConfigProperty(name = "quarkus.mailer.username")
+    @ConfigProperty(name = "quarkus.mailer.username", defaultValue = "")
     String username;
 
-    @ConfigProperty(name = "quarkus.mailer.password")
+    @ConfigProperty(name = "quarkus.mailer.password", defaultValue = "")
     String password;
 
-    @ConfigProperty(name = "quarkus.mailer.ssl")
+    @ConfigProperty(name = "quarkus.mailer.ssl", defaultValue = "false")
     boolean ssl;
 
-    @ConfigProperty(name = "quarkus.mailer.start-tls")
+    @ConfigProperty(name = "quarkus.mailer.start-tls", defaultValue = "true")
     boolean startTls;
 
     @Inject
